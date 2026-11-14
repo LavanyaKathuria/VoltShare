@@ -34,6 +34,14 @@ Roles are Firebase Auth **custom claims** (`host`, `admin`), set only by Cloud F
 
 Public `chargers/{id}` docs only hold an approximate point — the real location moved 120–250 m in a random direction — plus a geohash for range queries. The map draws a 300 m circle around it. The exact address, coordinates and gate code live in `chargers/{id}/private/details`, which rules allow only the host, admins, or a renter holding a `renterAccess/{chargerId_uid}` grant (created and revoked by Cloud Functions around a confirmed booking).
 
+## Double-booking-proof slots
+
+- One Firestore doc per 30-minute slot: `bookings/{chargerId}_{YYYY-MM-DD}_{HHmm}`. A multi-slot booking writes all its slot docs in **one transaction** (shared `groupId`).
+- Each booking has a public twin `slots/{same id}` (no personal data) that drives the live slot pills via `onSnapshot`; bookings themselves are private to renter, host and admins.
+- The client transaction (`src/lib/bookings.ts`) reads the slot locks first and aborts with *“Slot just taken!”* if any exists. Firestore's optimistic concurrency rejects the loser of any race; rules additionally refuse to create a booking whose ID already exists, and cross-check the booking/lock pair.
+- New bookings are `pending` (held for 10 min). Payment (mocked, test mode) calls the `confirmBooking` function → `confirmed`, issues the 4-digit PIN and grants address access. `cancelBooking` and the scheduled `releaseExpiredHolds` archive to `bookingHistory` and free the slots.
+- **Concurrency demo:** on any charger page, *Simulate concurrent booking* fires your transaction and a “Rival Driver” transaction (server-side, via `simulateRivalBooking`) for the same slot at the same instant — exactly one wins. Or open the same charger in two tabs and book the same slot.
+
 ## Map
 
 `src/components/map/MapView.tsx` is a provider-neutral wrapper (`types.ts` defines the contract). Today it lazy-loads `LeafletMap` (CARTO Voyager tiles, no key). To switch to Google Maps, implement the same props in a `GoogleMap.tsx` and change the one dynamic import.

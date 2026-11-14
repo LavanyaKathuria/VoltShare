@@ -108,6 +108,8 @@ async function seedChargers(uids: Record<string, string>) {
     const keep = new Set(CHARGERS.map((c) => c.id));
     const existing = await db.collection("chargers").get();
     for (const d of existing.docs) if (!keep.has(d.id)) await db.recursiveDelete(d.ref);
+    // …and start with an empty booking calendar.
+    for (const col of ["bookings", "slots", "bookingHistory", "renterAccess"]) await db.recursiveDelete(db.collection(col));
   }
   const batch = db.batch();
   for (const c of CHARGERS) {

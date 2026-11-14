@@ -120,6 +120,73 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---------- bookings (one doc per 30-min slot) ----------
+    // ID = {chargerId}_{YYYY-MM-DD}_{HHmm}. Because the ID *is* the slot, Firestore itself guarantees
+    // at most one booking per slot: a second "create" on an existing ID is an update, which is denied.
+    function slotMinutes(s) { return int(s[0:2]) * 60 + int(s[2:4]); }
+    // Slot keys are IST wall-clock times; convert to an absolute instant (IST = UTC+5:30).
+    function slotInstant(date, s) {
+      return timestamp.date(int(date[0:4]), int(date[5:7]), int(date[8:10])) + duration.value(slotMinutes(s) - 330, 'm');
+    }
+    function chargerOf(id) { return get(/databases/$(database)/documents/chargers/$(id)).data; }
+
+    function validNewBooking(bookingId, d) {
+      let c = chargerOf(d.chargerId);
+      return onlyKeys(['groupId', 'groupSlots', 'chargerId', 'chargerTitle', 'area', 'renterId', 'renterName',
+                       'ownerId', 'date', 'slot', 'startAt', 'endAt', 'status', 'ratePerKwh', 'powerKw', 'createdAt'])
+        && d.renterId == request.auth.uid
+        && d.status == 'pending'
+        && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.slot is string && d.slot.matches('^([01][0-9]|2[0-3])(00|30)$')
+        && bookingId == d.chargerId + '_' + d.date + '_' + d.slot
+        && d.groupSlots is list && d.groupSlots.size() >= 1 && d.groupSlots.size() <= 8
+        && d.slot in d.groupSlots
+        && d.groupId == d.chargerId + '_' + d.date + '_' + d.groupSlots[0]
+        // Charger must be live, priced as advertised, and not your own.
+        && c.online == true
+        && d.ownerId == c.ownerId && d.ownerId != request.auth.uid
+        && d.ratePerKwh == c.ratePerKwh && d.powerKw == c.powerKw
+        // Within opening hours…
+        && slotMinutes(d.slot) >= slotMinutes(c.openTime.replace(':', ''))
+        && slotMinutes(d.slot) + 30 <= slotMinutes(c.closeTime.replace(':', ''))
+        // …with honest timestamps, and not already over.
+        && d.startAt == slotInstant(d.date, d.slot)
+        && d.endAt == d.startAt + duration.value(30, 'm')
+        && request.time < d.endAt
+        && d.createdAt == request.time
+        // The public slot lock must be written in the same transaction.
+        && existsAfter(/databases/$(database)/documents/slots/$(bookingId));
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if signedIn() && (resource.data.renterId == request.auth.uid
+                                    || resource.data.ownerId == request.auth.uid
+                                    || isAdmin());
+      allow create: if signedIn() && validNewBooking(bookingId, request.resource.data);
+      // Confirm / cancel / check-in / check-out / billing all go through Cloud Functions.
+      allow update, delete: if false;
+    }
+
+    // ---------- slots (public availability, no personal data) ----------
+    match /slots/{slotId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && onlyKeys(['chargerId', 'date', 'slot', 'status'])
+        && request.resource.data.status == 'held'
+        && slotId == request.resource.data.chargerId + '_' + request.resource.data.date + '_' + request.resource.data.slot
+        // Only as the twin of your own booking in the same transaction.
+        && getAfter(/databases/$(database)/documents/bookings/$(slotId)).data.renterId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---------- bookingHistory (cancelled / expired, written by Cloud Functions) ----------
+    match /bookingHistory/{groupId} {
+      allow read: if signedIn() && (resource.data.renterId == request.auth.uid
+                                    || resource.data.ownerId == request.auth.uid
+                                    || isAdmin());
+      allow write: if false;
+    }
+
     // Everything else is closed until later phases open it explicitly.
     match /{document=**} { allow read, write: if false; }
   }

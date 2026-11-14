@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ModeProvider } from "@/components/layout/ModeProvider";
 import { Navbar } from "@/components/layout/Navbar";
+import { Toaster } from "@/components/ui/Toaster";
 import { inter, jakarta, jetbrains } from "./fonts";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
@@ -20,8 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh">
         <AuthProvider>
           <ModeProvider>
-            <Navbar />
-            {children}
+            <Toaster>
+              <Navbar />
+              {children}
+            </Toaster>
           </ModeProvider>
         </AuthProvider>
       </body>

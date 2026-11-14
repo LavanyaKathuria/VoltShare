@@ -14,7 +14,9 @@ import { ACCESS_LABEL, CONNECTOR_SHORT, formatINR, formatRate, PLATFORM_FEE, to1
 import { PRIVACY_RADIUS_M } from "@/lib/geo";
 import { ArrowLeft, BadgeCheck, CheckCircle2, Clock, Gauge, IndianRupee, KeyRound, Lock, MapPin, Plug } from "lucide-react";
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
+import { Modal } from "@/components/ui/Modal";
+import { useMediaQuery } from "@/hooks/useMedia";
 
 export default function ChargerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -23,6 +25,8 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
   const isOwner = !!user && charger?.ownerId === user.uid;
   // Rules decide who may read this; we only *try* when it could succeed (owner/admin; renters in Phase 5).
   const { details } = useChargerPrivate(id, !!user && (isOwner || claims.admin));
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [sheet, setSheet] = useState(false);
 
   if (charger === undefined) return <FullPageSpinner />;
   if (charger === null)
@@ -149,12 +153,21 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* Sticky booking card (desktop) */}
-        <aside className="hidden md:block">
-          <div className="sticky top-24">
-            <BookingWidget c={c} isOwner={isOwner} />
-          </div>
-        </aside>
+        {isDesktop && (
+          <aside>
+            <div className="sticky top-24">
+              <BookingWidget c={c} isOwner={isOwner} />
+            </div>
+          </aside>
+        )}
       </div>
+
+      {/* Mobile: booking widget in a bottom sheet (only one widget instance is ever mounted) */}
+      {isDesktop === false && (
+        <Modal open={sheet} onClose={() => setSheet(false)} label="Book this charger">
+          <BookingWidget c={c} isOwner={isOwner} className="border-0 p-0 shadow-none" />
+        </Modal>
+      )}
 
       {/* Mobile sticky bottom bar */}
       <div className="fixed inset-x-0 bottom-0 z-[900] border-t border-line bg-white/95 px-4 py-3 backdrop-blur md:hidden">
@@ -170,9 +183,9 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
               Edit listing
             </ButtonLink>
           ) : (
-            <a href="#book" className="pointer-events-none rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white opacity-60">
+            <button onClick={() => setSheet(true)} className="rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-soft">
               Choose slots
-            </a>
+            </button>
           )}
         </div>
       </div>

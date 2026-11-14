@@ -56,3 +56,43 @@ export interface ChargerPrivate {
   exactLng: number;
   accessNotes: string;
 }
+
+export type BookingStatus = "pending" | "confirmed" | "active" | "completed" | "cancelled";
+
+/** bookings/{chargerId}_{YYYY-MM-DD}_{HHmm} — one doc per 30-min slot. */
+export interface Booking {
+  id: string;
+  groupId: string; // id of the first slot doc in a multi-slot booking
+  groupSlots: string[]; // all HHmm slots in the group, sorted
+  chargerId: string;
+  chargerTitle: string;
+  area: string;
+  renterId: string;
+  renterName: string;
+  ownerId: string;
+  date: string;
+  slot: string;
+  startAt: Timestamp;
+  endAt: Timestamp;
+  status: BookingStatus;
+  ratePerKwh: number;
+  powerKw: number;
+  pin?: string;
+  createdAt?: Timestamp;
+  confirmedAt?: Timestamp;
+  // Filled in Phase 5 (check-in/out + billing)
+  checkedInAt?: Timestamp;
+  checkedOutAt?: Timestamp;
+  kwh?: number;
+  energyCost?: number;
+  platformFee?: number;
+  amount?: number;
+}
+
+/** slots/{same id as booking} — public, no personal data. Drives live slot pills. */
+export interface SlotLock {
+  chargerId: string;
+  date: string;
+  slot: string;
+  status: "held" | "booked";
+}
