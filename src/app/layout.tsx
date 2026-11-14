@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ModeProvider } from "@/components/layout/ModeProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { inter, jakarta, jetbrains } from "./fonts";
@@ -17,10 +18,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-IN" className={`${jakarta.variable} ${inter.variable} ${jetbrains.variable}`}>
       <body className="min-h-dvh">
-        <ModeProvider>
-          <Navbar />
-          {children}
-        </ModeProvider>
+        <AuthProvider>
+          <ModeProvider>
+            <Navbar />
+            {children}
+          </ModeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

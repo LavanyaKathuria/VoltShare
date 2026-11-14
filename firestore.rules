@@ -1,7 +1,43 @@
 rules_version = '2';
-// Placeholder: locked down until Phase 2+ adds real rules.
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    // Roles come ONLY from custom claims, which only Cloud Functions can set.
+    function isHost() { return signedIn() && request.auth.token.host == true; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+
+    function onlyKeys(allowed) { return request.resource.data.keys().hasOnly(allowed); }
+    function changedOnly(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+    function validName(n) { return n is string && n.size() > 0 && n.size() <= 80; }
+
+    // ---------- users ----------
+    // Private profile: owner + admins only. Public host info is denormalised onto charger docs.
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+
+      // First sign-in: a user may create their own profile, but only as a plain renter.
+      allow create: if isSelf(uid)
+        && onlyKeys(['name', 'email', 'photo', 'roles', 'verifiedHost', 'createdAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.roles == ['renter']
+        && request.resource.data.verifiedHost == false
+        && request.resource.data.createdAt == request.time;
+
+      // Owners may edit cosmetic fields only — never roles, verifiedHost or claimsUpdatedAt.
+      allow update: if isSelf(uid)
+        && changedOnly(['name', 'photo'])
+        && validName(request.resource.data.name);
+
+      allow delete: if false;
+    }
+
+    // Everything else is closed until later phases open it explicitly.
     match /{document=**} { allow read, write: if false; }
   }
 }

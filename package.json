@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "emulators": "firebase emulators:start --import=./.emulator-data --export-on-exit",
+    "emulators": "npm --prefix functions run build && firebase emulators:start --project demo-voltshare",
     "seed": "tsx scripts/seed.ts",
-    "test:rules": "firebase emulators:exec --only firestore,storage \"vitest run tests/rules\""
+    "test:rules": "firebase emulators:exec --project demo-voltshare --only firestore,storage \"vitest run tests/rules\"",
+    "postinstall": "npm --prefix functions install --no-audit --no-fund"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -32,10 +33,15 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "firebase-admin": "^14.5.1",
+    "firebase-tools": "^15.36.0",
     "postcss": "^8.5.33",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "@firebase/app": "0.16.6",
+    "@firebase/app-compat": "0.5.22"
   }
 }
