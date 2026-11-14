@@ -1,1 +1,7 @@
-{ "projects": { "default": "demo-voltshare" } }
+{
+  "projects": {
+    "default": "voltshare-3d53d"
+  },
+  "targets": {},
+  "etags": {}
+}
