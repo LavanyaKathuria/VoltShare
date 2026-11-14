@@ -97,7 +97,7 @@ const scenes = {
   <rect x="230" y="70" width="200" height="300" rx="34" fill="#fff" stroke="#CBD5E1" stroke-width="4"/>
   <rect x="262" y="110" width="136" height="80" rx="14" fill="url(#brand-${id})"/>
   <path d="M342 122 L310 160 H332 L320 182 L352 146 H330Z" fill="#fff"/>
-  <text x="330" y="230" text-anchor="middle" font-family="monospace" font-size="22" font-weight="700" fill="#0F172A">7.4 kW</text>
+  <text x="330" y="230" text-anchor="middle" font-family="monospace" font-size="17" font-weight="700" fill="#0F172A">VOLTSHARE</text>
   <circle cx="330" cy="300" r="34" fill="#0F172A"/><circle cx="330" cy="300" r="14" fill="#34D399"/>
   <path d="M330 334 C 330 440, 560 380, 610 470" fill="none" stroke="#0F172A" stroke-width="16" stroke-linecap="round"/>
   <rect x="560" y="200" width="160" height="40" rx="20" fill="#DCFCE7"/><circle cx="586" cy="220" r="7" fill="#10B981"/>

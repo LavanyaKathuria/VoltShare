@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { BadgeCheck, Plug, PlugZap, Zap } from "lucide-react";
+import { BadgeCheck, FlaskConical, Plug, PlugZap, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type SlotStatus = "available" | "charging" | "locked";
@@ -53,6 +53,16 @@ export function VerifiedBadge({ className }: { className?: string }) {
     <Pill className={cn("bg-mint text-avail-fg", className)}>
       <BadgeCheck className="h-3.5 w-3.5" />
       Verified host
+    </Pill>
+  );
+}
+
+/** Marks fictional seed data so nobody mistakes it for a real host or business. */
+export function DemoBadge({ className }: { className?: string }) {
+  return (
+    <Pill className={cn("bg-violet-50 text-violet-700 ring-1 ring-violet-200", className)}>
+      <FlaskConical className="h-3 w-3" />
+      Demo listing
     </Pill>
   );
 }

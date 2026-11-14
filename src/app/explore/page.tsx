@@ -3,26 +3,52 @@
 import { BottomSheet, type SheetSnap } from "@/components/explore/BottomSheet";
 import { ChargerCard, displayStatus } from "@/components/explore/ChargerCard";
 import { applyFilters, DEFAULT_FILTERS, Filters, type FilterState } from "@/components/explore/Filters";
-import { MapView, type MapMarker } from "@/components/map/MapView";
+import { MapView, type MapMarker, type StationMarker } from "@/components/map/MapView";
 import { useChargersNear } from "@/hooks/useChargers";
+import { usePublicStations } from "@/hooks/usePublicStations";
 import { useMediaQuery, useUserLocation } from "@/hooks/useMedia";
 import { cn } from "@/lib/cn";
 import { formatRate, STATUS_COLOR } from "@/lib/chargers";
 import { CITY_CENTER, distanceKm, type LatLng } from "@/lib/geo";
 import { AnimatePresence, motion } from "framer-motion";
-import { List, Loader2, LocateFixed, Map as MapIcon, RotateCw, SearchX, X } from "lucide-react";
+import { Fuel, List, Loader2, LocateFixed, Map as MapIcon, RotateCw, SearchX, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-function Legend() {
+function Legend({ stations }: { stations: boolean }) {
   return (
-    <div className="flex items-center gap-3 rounded-full border border-line bg-white/95 px-3 py-1.5 text-[11px] font-medium shadow-soft backdrop-blur">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-line bg-white/95 px-3 py-1.5 text-[11px] font-medium shadow-soft backdrop-blur">
       {(["available", "charging", "busy"] as const).map((s) => (
         <span key={s} className="flex items-center gap-1.5 capitalize">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATUS_COLOR[s] }} />
           {s === "charging" ? "Charging" : s}
         </span>
       ))}
+      {stations && (
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-white bg-slate-600 ring-1 ring-slate-300" /> Public station (not bookable)
+        </span>
+      )}
     </div>
+  );
+}
+
+/** Toggle for the Open Charge Map layer. Disabled (with an explanation) when no API key is configured. */
+function StationsToggle({ on, onChange, enabled, count, loading }: { on: boolean; onChange: (v: boolean) => void; enabled: boolean | null; count: number; loading: boolean }) {
+  const off = enabled === false;
+  return (
+    <button
+      onClick={() => !off && onChange(!on)}
+      aria-pressed={on && !off}
+      title={off ? "Add OCM_API_KEY on the server to show public stations from Open Charge Map" : "Public stations from Open Charge Map"}
+      className={cn(
+        "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-soft transition",
+        off ? "cursor-not-allowed border-line bg-white/90 text-muted" : on ? "border-slate-500 bg-slate-700 text-white" : "border-line bg-white text-ink hover:border-slate-400",
+      )}
+    >
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Fuel className="h-3.5 w-3.5" />}
+      Public stations{!off && on && !loading ? ` · ${count}` : ""}
+      {off && <span className="font-normal">(off)</span>}
+    </button>
   );
 }
 
@@ -49,6 +75,7 @@ export default function ExplorePage() {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [snap, setSnap] = useState<SheetSnap>("half");
+  const [showStations, setShowStations] = useState(true);
 
   // Jump to the user's location once we know it.
   useEffect(() => {
@@ -67,6 +94,24 @@ export default function ExplorePage() {
   const markers: MapMarker[] = useMemo(
     () => list.map((c) => ({ id: c.id, lat: c.approxLat, lng: c.approxLng, label: formatRate(c.ratePerKwh), status: displayStatus(c) })),
     [list],
+  );
+  const pub = usePublicStations(query.c, query.r, showStations);
+  const stationMarkers: StationMarker[] = useMemo(
+    () =>
+      showStations && pub.enabled
+        ? pub.stations.map((st) => ({
+            id: `ocm-${st.id}`,
+            lat: st.lat,
+            lng: st.lng,
+            title: st.name,
+            lines: [
+              ["Public station", st.operator].filter(Boolean).join(" · "),
+              st.connectors.map((c) => `${c.type}${c.kw ? ` ${c.kw} kW` : ""}`).join(", ") || "Connectors unknown",
+              st.operational === false ? "Reported not operational" : "Not bookable on VoltShare",
+            ],
+          }))
+        : [],
+    [pub, showStations],
   );
   const activeId = hoverId ?? selectedId;
   const selected = list.find((c) => c.id === selectedId);
@@ -99,6 +144,7 @@ export default function ExplorePage() {
       center={mapCenter}
       zoom={isDesktop ? 13 : 12}
       markers={markers}
+      stations={stationMarkers}
       activeId={activeId}
       onMarkerHover={setHoverId}
       onMarkerClick={onMarkerClick}
@@ -154,8 +200,16 @@ export default function ExplorePage() {
             <div className="pointer-events-none absolute inset-x-0 top-3 z-[500] flex justify-center">
               <div className="pointer-events-auto">{searchArea}</div>
             </div>
-            <div className="absolute bottom-3 left-3 z-[500]">
-              <Legend />
+            <div className="absolute right-3 top-3 z-[500]">
+              <StationsToggle on={showStations} onChange={setShowStations} enabled={pub.enabled} count={pub.stations.length} loading={pub.loading} />
+            </div>
+            <div className="absolute bottom-3 left-3 right-3 z-[500] flex items-end justify-between gap-2">
+              <Legend stations={stationMarkers.length > 0} />
+              {stationMarkers.length > 0 && (
+                <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] text-muted">
+                  Public stations: <a className="underline" href="https://openchargemap.org" target="_blank" rel="noreferrer">Open Charge Map</a>
+                </span>
+              )}
             </div>
           </div>
         </section>
@@ -171,6 +225,9 @@ export default function ExplorePage() {
           <Filters value={filters} onChange={setFilters} />
         </div>
         <div className="pointer-events-auto">{searchArea}</div>
+      </div>
+      <div className="absolute left-4 top-24 z-[400]">
+        <StationsToggle on={showStations} onChange={setShowStations} enabled={pub.enabled} count={pub.stations.length} loading={pub.loading} />
       </div>
       {userLoc && (
         <button

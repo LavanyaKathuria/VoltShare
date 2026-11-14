@@ -6,6 +6,8 @@ import type { LiveStatus } from "@/types";
  * (Maps JS API + AdvancedMarkerElement) can be dropped in by changing one import in MapView.tsx.
  */
 export type MapMarker = { id: string; lat: number; lng: number; label: string; status: LiveStatus };
+/** Non-bookable public station (Open Charge Map layer). */
+export type StationMarker = { id: string; lat: number; lng: number; title: string; lines: string[] };
 export type MapCircle = { lat: number; lng: number; radiusM: number };
 
 export interface MapViewProps {
@@ -16,6 +18,7 @@ export interface MapViewProps {
   onMarkerHover?: (id: string | null) => void;
   onMarkerClick?: (id: string) => void;
   circles?: MapCircle[];
+  stations?: StationMarker[];
   userLocation?: LatLng | null;
   /** Fired after pan/zoom with the visible centre and the radius (m) that covers the viewport. */
   onMoveEnd?: (center: LatLng, radiusM: number) => void;

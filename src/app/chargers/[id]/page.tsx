@@ -7,7 +7,7 @@ import { Gallery } from "@/components/charger/Gallery";
 import { displayStatus, Rating } from "@/components/explore/ChargerCard";
 import { MapView } from "@/components/map/MapView";
 import { Avatar } from "@/components/ui/Avatar";
-import { ConnectorBadge, Pill, StatusBadge, VerifiedBadge } from "@/components/ui/Badge";
+import { ConnectorBadge, DemoBadge, Pill, StatusBadge, VerifiedBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { useCharger, useChargerPrivate, useRenterAccess } from "@/hooks/useChargers";
 import { ACCESS_LABEL, CONNECTOR_SHORT, formatINR, formatRate, PLATFORM_FEE, to12h } from "@/lib/chargers";
@@ -65,6 +65,7 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
+          {c.demo && <DemoBadge />}
           <StatusBadge status={status === "busy" ? "locked" : status} label={!c.online ? "Offline" : status === "busy" ? "Busy" : undefined} />
           {c.meterVerified && (
             <Pill className="bg-sky-tint text-sky-600">
@@ -74,6 +75,11 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
+      {c.demo && (
+        <p className="mb-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm text-violet-800">
+          This is a fictional sample listing for demonstrating VoltShare — the host, address and photos are not real. Bookings work end to end.
+        </p>
+      )}
       <Gallery photos={c.photos} title={c.title} />
 
       <div className="mt-8 grid gap-10 md:grid-cols-[1fr_360px]">

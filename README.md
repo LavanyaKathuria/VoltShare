@@ -18,6 +18,8 @@ npm run dev                 # terminal 2 — http://localhost:3000
 
 Demo accounts (password `demo1234`): `renter@demo.com`, `host@demo.com`, `admin@demo.com`.
 `npm run seed` also creates 15 chargers across Bengaluru (fixed IDs, e.g. `/chargers/blr-koramangala-01`) and resets the emulator to that state each time.
+
+> **Demo data is fictional.** The seeded hosts, listings, addresses, gate codes, ratings and photos are invented for demonstration (neighbourhood coordinates are real, house-level details are not). They're flagged `demo: true` and shown with a **“Demo listing”** tag. Any charger listed through *Host Mode → Add charger* is a real, fully working listing.
 Demo listing art lives in `public/demo/` (regenerate with `node scripts/gen-demo-art.mjs`).
 
 ## Tests
@@ -50,6 +52,10 @@ Public `chargers/{id}` docs only hold an approximate point — the real location
 - **Check-out** (`checkOut` function): kWh reading (sanity-capped by charger power × booked time) + optional meter photo in Storage (`checkout/{uid}/{bookingId}/…`, readable by renter, host and admins).
 - **Billing** (`billOnComplete` Firestore trigger): `kWh × rate + 15% platform fee`, written to the booking, plus atomic increments to `hostStats/{ownerId}` (earnings, kWh, sessions, per-day, per-charger). Guarded by `billedAt`, so retries never double-count.
 - **Scheduled** `revokeExpiredAccess` (every 10 min): deletes access grants whose slot has ended, and auto-closes sessions nobody checked out of 30 min after the slot (flagged `autoClosed`).
+
+## Public stations layer (optional)
+
+Set `OCM_API_KEY` (free key from [Open Charge Map](https://openchargemap.org/site/develop/api), server-side only) to show real **public** charging stations as grey, non-bookable dots on the explorer map — for context on how sparse public charging is. The browser calls `/api/public-stations`, a Next.js route that adds the key server-side and caches results for a day. Without a key, the toggle shows “(off)” and nothing is invented.
 
 ## Map
 

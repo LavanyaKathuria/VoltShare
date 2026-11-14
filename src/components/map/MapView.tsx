@@ -12,4 +12,4 @@ const Impl = dynamic(() => import("./LeafletMap"), {
 export function MapView(props: MapViewProps) {
   return <Impl {...props} />;
 }
-export type { MapMarker, MapViewProps } from "./types";
+export type { MapMarker, MapViewProps, StationMarker } from "./types";

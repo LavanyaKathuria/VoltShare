@@ -119,3 +119,7 @@
 }
 .vs-drop span { position: absolute; inset: 7px; border-radius: 50%; background: #fff; }
 .leaflet-control-attribution { font-size: 10px !important; background: rgb(255 255 255 / 0.75) !important; }
+
+.leaflet-tooltip.vs-station-tip { min-width: 190px; font: 12px/1.4 var(--font-sans); color: #0f172a; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 16px -4px rgb(15 23 42 / 0.2); padding: 8px 10px; max-width: 240px; white-space: normal; }
+.vs-station-tip strong { display: block; font-weight: 600; margin-bottom: 2px; }
+.vs-station-tip div { color: #64748b; }

@@ -43,6 +43,7 @@ export interface Charger {
   online: boolean;
   liveStatus: LiveStatus;
   meterVerified: boolean; // "DISCOM EV Meter Verified" demo flag
+  demo?: boolean; // fictional sample listing created by the seed script
   rating: number;
   reviewCount: number;
   createdAt?: Timestamp;

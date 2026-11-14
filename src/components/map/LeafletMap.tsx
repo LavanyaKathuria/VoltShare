@@ -4,7 +4,7 @@ import { STATUS_COLOR } from "@/lib/chargers";
 import type { LatLng } from "@/lib/geo";
 import L from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
-import { Circle, CircleMarker, MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import type { MapMarker, MapViewProps } from "./types";
 
 // CARTO "Voyager" — clean, Google-Maps-like light basemap, no API key.
@@ -69,6 +69,7 @@ export default function LeafletMap({
   onMarkerHover,
   onMarkerClick,
   circles = [],
+  stations = [],
   userLocation,
   onMoveEnd,
   pin,
@@ -102,6 +103,22 @@ export default function LeafletMap({
           radius={c.radiusM}
           pathOptions={{ color: "#0EA5E9", weight: 1.5, dashArray: "4 6", fillColor: "#0EA5E9", fillOpacity: 0.12 }}
         />
+      ))}
+
+      {stations.map((st) => (
+        <CircleMarker
+          key={st.id}
+          center={[st.lat, st.lng]}
+          radius={6}
+          pathOptions={{ color: "#fff", weight: 2, fillColor: "#475569", fillOpacity: 0.9 }}
+        >
+          <Tooltip direction="top" offset={[0, -6]} className="vs-station-tip">
+            <strong>{st.title}</strong>
+            {st.lines.map((l, i) => (
+              <div key={i}>{l}</div>
+            ))}
+          </Tooltip>
+        </CircleMarker>
       ))}
 
       {userLocation && (

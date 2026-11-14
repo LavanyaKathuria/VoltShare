@@ -1,6 +1,6 @@
 "use client";
 
-import { ConnectorBadge, Pill, StatusBadge } from "@/components/ui/Badge";
+import { ConnectorBadge, DemoBadge, Pill, StatusBadge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
 import { ACCESS_LABEL, formatRate } from "@/lib/chargers";
 import { formatDistance } from "@/lib/geo";
@@ -57,6 +57,7 @@ export function ChargerCard({
         <div className="absolute left-2 top-2">
           <StatusBadge status={status === "busy" ? "locked" : status} label={status === "busy" ? "Busy" : undefined} />
         </div>
+        {c.demo && !row && <DemoBadge className="absolute bottom-2 left-2 bg-white/90" />}
       </div>
       <div className={cn("min-w-0 flex-1 space-y-2", row ? "p-3" : "p-4")}>
         <div className="flex items-start justify-between gap-2">
