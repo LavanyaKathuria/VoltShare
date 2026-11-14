@@ -73,3 +73,49 @@
 /* Leaflet resets so Tailwind preflight doesn't break tiles */
 .leaflet-container img { max-width: none !important; }
 .leaflet-container { font-family: var(--font-sans); }
+
+/* ---------- Map pins ---------- */
+.vs-pin { background: none; border: none; }
+.vs-pin-inner {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--pin);
+  color: #fff;
+  font: 600 12px/1.2 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.25);
+  border: 2px solid #fff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+.vs-pin-inner::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--pin);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+}
+.vs-pin-inner.is-active {
+  transform: translate(-50%, -100%) scale(1.18);
+  box-shadow: 0 0 0 4px rgb(14 165 233 / 0.35), 0 6px 16px rgb(15 23 42 / 0.3);
+}
+.vs-drop {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: 28px; height: 28px;
+  border-radius: 50% 50% 50% 0;
+  rotate: -45deg;
+  background: linear-gradient(135deg, #0ea5e9, #10b981);
+  border: 3px solid #fff;
+  box-shadow: 0 4px 10px rgb(15 23 42 / 0.3);
+}
+.vs-drop span { position: absolute; inset: 7px; border-radius: 50%; background: #fff; }
+.leaflet-control-attribution { font-size: 10px !important; background: rgb(255 255 255 / 0.75) !important; }

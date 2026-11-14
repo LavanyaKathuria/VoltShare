@@ -1,7 +1,27 @@
 rules_version = '2';
-// Placeholder: locked down until Phase 3 adds charger photo rules.
+
 service firebase.storage {
   match /b/{bucket}/o {
+    // Charger photos: chargers/{hostUid}/{chargerId}/{file}
+    // Public read (listing photos); only that host can upload, images only, max 5 MB.
+    match /chargers/{hostUid}/{chargerId}/{fileName} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == hostUid
+        && request.auth.token.get('host', false) == true
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && (request.auth.uid == hostUid || request.auth.token.get('admin', false) == true);
+    }
+
+    // Check-out meter photos: checkout/{renterUid}/{bookingId}/{file} (used in Phase 5)
+    match /checkout/{renterUid}/{bookingId}/{fileName} {
+      allow read: if request.auth != null && (request.auth.uid == renterUid || request.auth.token.get('admin', false) == true);
+      allow create: if request.auth != null && request.auth.uid == renterUid
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     match /{allPaths=**} { allow read, write: if false; }
   }
 }

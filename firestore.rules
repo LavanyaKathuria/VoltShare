@@ -7,8 +7,8 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
     // Roles come ONLY from custom claims, which only Cloud Functions can set.
-    function isHost() { return signedIn() && request.auth.token.host == true; }
-    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+    function isHost() { return signedIn() && request.auth.token.get('host', false) == true; }
+    function isAdmin() { return signedIn() && request.auth.token.get('admin', false) == true; }
 
     function onlyKeys(allowed) { return request.resource.data.keys().hasOnly(allowed); }
     function changedOnly(allowed) {
@@ -35,6 +35,89 @@ service cloud.firestore {
         && validName(request.resource.data.name);
 
       allow delete: if false;
+    }
+
+    // ---------- chargers ----------
+    function userDoc(uid) { return get(/databases/$(database)/documents/users/$(uid)).data; }
+    function hhmm(t) { return t is string && t.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'); }
+
+    function validCharger(d) {
+      return d.title is string && d.title.size() >= 3 && d.title.size() <= 80
+        && d.description is string && d.description.size() <= 1000
+        && d.photos is list && d.photos.size() <= 6
+        && d.connector in ['TYPE2', 'CCS2', 'SOCKET15A']
+        && d.powerKw is number && d.powerKw > 0 && d.powerKw <= 60
+        && d.ratePerKwh is number && d.ratePerKwh >= 5 && d.ratePerKwh <= 50
+        && d.accessType in ['PUBLIC_DRIVEWAY', 'GATED_SOCIETY', 'BUSINESS']
+        && d.rules is list && d.rules.size() <= 10
+        && hhmm(d.openTime) && hhmm(d.closeTime)
+        && d.approxLat is number && d.approxLng is number
+        && d.geohash is string && d.geohash.size() <= 12
+        && d.area is string && d.area.size() >= 2 && d.area.size() <= 60
+        && d.city is string && d.city.size() <= 40
+        && d.online is bool
+        && d.hostName is string && d.hostName.size() <= 80;
+    }
+
+    match /chargers/{chargerId} {
+      // Public listing (approximate location only) — readable by everyone, even signed out.
+      allow read: if true;
+
+      allow create: if isHost()
+        && request.resource.data.ownerId == request.auth.uid
+        && onlyKeys(['ownerId', 'hostName', 'hostPhoto', 'hostVerified', 'title', 'description', 'photos',
+                     'connector', 'powerKw', 'ratePerKwh', 'accessType', 'rules', 'openTime', 'closeTime',
+                     'approxLat', 'approxLng', 'geohash', 'area', 'city', 'online', 'liveStatus',
+                     'meterVerified', 'rating', 'reviewCount', 'createdAt', 'updatedAt'])
+        && validCharger(request.resource.data)
+        // Trust signals can't be self-awarded:
+        && request.resource.data.hostVerified == userDoc(request.auth.uid).verifiedHost
+        && request.resource.data.meterVerified == false
+        && request.resource.data.liveStatus == 'available'
+        && request.resource.data.rating == 0 && request.resource.data.reviewCount == 0
+        && request.resource.data.createdAt == request.time;
+
+      // Owner edits listing details; never ownership, trust badges, live status or ratings.
+      allow update: if (
+          isHost() && resource.data.ownerId == request.auth.uid
+          && changedOnly(['hostName', 'hostPhoto', 'title', 'description', 'photos', 'connector', 'powerKw',
+                          'ratePerKwh', 'accessType', 'rules', 'openTime', 'closeTime', 'approxLat',
+                          'approxLng', 'geohash', 'area', 'city', 'online', 'updatedAt'])
+          && validCharger(request.resource.data)
+        ) || (
+          // Admin moderation: take offline / mark the DISCOM meter as verified.
+          isAdmin() && changedOnly(['online', 'meterVerified', 'updatedAt'])
+        );
+
+      allow delete: if (isHost() && resource.data.ownerId == request.auth.uid) || isAdmin();
+
+      // Exact address + gate code. Host, admins, or a renter holding a live renterAccess grant
+      // (created/deleted only by Cloud Functions around a confirmed booking).
+      match /private/{docId} {
+        function chargerAfter() { return getAfter(/databases/$(database)/documents/chargers/$(chargerId)).data; }
+        function charger() { return get(/databases/$(database)/documents/chargers/$(chargerId)).data; }
+
+        allow read: if signedIn() && (
+          charger().ownerId == request.auth.uid
+          || isAdmin()
+          || exists(/databases/$(database)/documents/renterAccess/$(chargerId + '_' + request.auth.uid))
+        );
+        // getAfter() lets the host create the listing and its private doc in one batch.
+        allow create, update: if docId == 'details' && isHost()
+          && chargerAfter().ownerId == request.auth.uid
+          && onlyKeys(['address', 'exactLat', 'exactLng', 'accessNotes'])
+          && request.resource.data.address is string && request.resource.data.address.size() <= 300
+          && request.resource.data.exactLat is number && request.resource.data.exactLng is number
+          && request.resource.data.accessNotes is string && request.resource.data.accessNotes.size() <= 500;
+        allow delete: if signedIn() && (charger().ownerId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // ---------- renterAccess ----------
+    // Written ONLY by Cloud Functions (Admin SDK bypasses rules). Clients can read their own grant.
+    match /renterAccess/{accessId} {
+      allow read: if signedIn() && (resource.data.renterId == request.auth.uid || resource.data.ownerId == request.auth.uid || isAdmin());
+      allow write: if false;
     }
 
     // Everything else is closed until later phases open it explicitly.

@@ -4,7 +4,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Badge";
-import { cn } from "@/lib/cn";
+import { Toggle } from "@/components/ui/Toggle";
+import { AdminChargers } from "@/components/host/AdminChargers";
 import { db, functions } from "@/lib/firebase/client";
 import type { UserProfile } from "@/types";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
@@ -14,22 +15,6 @@ import { useEffect, useMemo, useState } from "react";
 
 type Patch = { uid: string; host?: boolean; admin?: boolean; verifiedHost?: boolean };
 const setRoles = (p: Patch) => httpsCallable<Patch, { roles: string[] }>(functions, "adminSetUserRoles")(p);
-
-function Toggle({ on, busy, onClick, label }: { on: boolean; busy: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={onClick}
-      className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60", on ? "bg-brand" : "bg-slate-200")}
-    >
-      <span className={cn("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all", on ? "left-[22px]" : "left-0.5")} />
-      {busy && <Loader2 className="absolute inset-0 m-auto h-3 w-3 animate-spin text-ink" />}
-    </button>
-  );
-}
 
 function UsersTable() {
   const { user } = useAuth();
@@ -143,9 +128,10 @@ function AdminGate() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h1 className="text-3xl">Admin</h1>
-        <p className="text-muted">Verify hosts and manage roles. Charger moderation arrives with listings.</p>
+        <p className="text-muted">Verify hosts, manage roles and moderate listings.</p>
       </div>
       <UsersTable />
+      <AdminChargers />
     </div>
   );
 }

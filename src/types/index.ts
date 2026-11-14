@@ -12,3 +12,47 @@ export interface UserProfile {
   createdAt?: Timestamp;
   claimsUpdatedAt?: Timestamp;
 }
+
+export type Connector = "TYPE2" | "CCS2" | "SOCKET15A";
+export type AccessType = "PUBLIC_DRIVEWAY" | "GATED_SOCIETY" | "BUSINESS";
+/** Live status shown on pins: available (green), charging now (amber), busy/offline (grey). */
+export type LiveStatus = "available" | "charging" | "busy";
+
+export interface Charger {
+  id: string;
+  ownerId: string;
+  hostName: string;
+  hostPhoto: string | null;
+  hostVerified: boolean; // must equal users/{ownerId}.verifiedHost (enforced by rules)
+  title: string;
+  description: string;
+  photos: string[];
+  connector: Connector;
+  powerKw: number;
+  ratePerKwh: number;
+  accessType: AccessType;
+  rules: string[];
+  openTime: string; // "HH:mm" (24h, IST)
+  closeTime: string; // "HH:mm"
+  // Public, privacy-preserving location (~300 m fuzz)
+  approxLat: number;
+  approxLng: number;
+  geohash: string;
+  area: string;
+  city: string;
+  online: boolean;
+  liveStatus: LiveStatus;
+  meterVerified: boolean; // "DISCOM EV Meter Verified" demo flag
+  rating: number;
+  reviewCount: number;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+/** chargers/{id}/private/details — host, admins, or renters holding renterAccess only. */
+export interface ChargerPrivate {
+  address: string;
+  exactLat: number;
+  exactLng: number;
+  accessNotes: string;
+}

@@ -17,6 +17,8 @@ npm run dev                 # terminal 2 — http://localhost:3000
 ```
 
 Demo accounts (password `demo1234`): `renter@demo.com`, `host@demo.com`, `admin@demo.com`.
+`npm run seed` also creates 15 chargers across Bengaluru (fixed IDs, e.g. `/chargers/blr-koramangala-01`) and resets the emulator to that state each time.
+Demo listing art lives in `public/demo/` (regenerate with `node scripts/gen-demo-art.mjs`).
 
 ## Tests
 
@@ -27,5 +29,13 @@ npm run test:rules          # Firestore security rules tests (starts emulators i
 ## Roles
 
 Roles are Firebase Auth **custom claims** (`host`, `admin`), set only by Cloud Functions (`becomeHost`, `adminSetUserRoles`) and mirrored to `users/{uid}.roles` for display. Security rules trust the token claims only. When a function changes a user's claims it bumps `users/{uid}.claimsUpdatedAt`; the open client sees that via `onSnapshot` and force-refreshes its ID token, so role changes apply instantly without signing out.
+
+## Location privacy
+
+Public `chargers/{id}` docs only hold an approximate point — the real location moved 120–250 m in a random direction — plus a geohash for range queries. The map draws a 300 m circle around it. The exact address, coordinates and gate code live in `chargers/{id}/private/details`, which rules allow only the host, admins, or a renter holding a `renterAccess/{chargerId_uid}` grant (created and revoked by Cloud Functions around a confirmed booking).
+
+## Map
+
+`src/components/map/MapView.tsx` is a provider-neutral wrapper (`types.ts` defines the contract). Today it lazy-loads `LeafletMap` (CARTO Voyager tiles, no key). To switch to Google Maps, implement the same props in a `GoogleMap.tsx` and change the one dynamic import.
 
 _Full setup, architecture diagram and deploy steps are added at the end of the build._

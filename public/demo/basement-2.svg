@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+<defs>
+  <linearGradient id="sky-basement-2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E0F2FE"/><stop offset="1" stop-color="#F0FDF4"/></linearGradient>
+  <linearGradient id="brand-basement-2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0EA5E9"/><stop offset="1" stop-color="#10B981"/></linearGradient>
+  <radialGradient id="glow-basement-2"><stop offset="0" stop-color="#34D399" stop-opacity=".9"/><stop offset="1" stop-color="#34D399" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="800" height="500" fill="url(#sky-basement-2)"/>
+
+  <rect width="800" height="500" fill="#334155"/>
+  <rect y="0" width="800" height="60" fill="#1E293B"/>
+  <rect x="110" y="0" width="80" height="10" fill="#FEF9C3" opacity=".9"/><rect x="350" y="0" width="80" height="10" fill="#FEF9C3" opacity=".9"/><rect x="590" y="0" width="80" height="10" fill="#FEF9C3" opacity=".9"/>
+  <rect y="330" width="800" height="170" fill="#475569"/>
+  <path d="M40 500 L80 340" stroke="#FACC15" stroke-width="6"/><path d="M240 500 L280 340" stroke="#FACC15" stroke-width="6"/><path d="M440 500 L480 340" stroke="#FACC15" stroke-width="6"/><path d="M640 500 L680 340" stroke="#FACC15" stroke-width="6"/>
+  <rect x="520" y="60" width="70" height="280" fill="#64748B"/>
+  <rect x="520" y="110" width="70" height="18" fill="#10B981"/><rect x="520" y="300" width="70" height="18" fill="#10B981"/>
+  <text x="555" y="170" text-anchor="middle" font-family="monospace" font-size="26" font-weight="700" fill="#F8FAFC">B-12</text>
+  <g transform="translate(525 190) scale(1)">
+  <ellipse cx="30" cy="40" rx="60" ry="60" fill="url(#glow-basement-2)" opacity=".35"/>
+  <rect x="0" y="0" width="60" height="84" rx="12" fill="#fff" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="10" y="12" width="40" height="22" rx="5" fill="url(#brand-basement-2)"/>
+  <path d="M33 15 L24 25 H30 L27 32 L36 22 H30Z" fill="#fff"/>
+  <circle cx="30" cy="56" r="9" fill="#0F172A"/><circle cx="30" cy="56" r="4" fill="#34D399"/>
+</g><path d="M555 255 C 555 460, 410 470, 470 420" fill="none" stroke="#0F172A" stroke-width="5" stroke-linecap="round"/>
+  <g transform="translate(200 350) scale(1.1)">
+  <path d="M0 60 Q8 28 52 22 L92 0 Q120 -8 168 0 L214 24 Q250 30 256 60 L256 74 L0 74Z" fill="#F8FAFC"/>
+  <path d="M98 8 L130 4 L130 28 L80 28Z M140 4 Q164 4 196 26 L140 28Z" fill="#BAE6FD" opacity=".85"/>
+  <circle cx="58" cy="76" r="22" fill="#1E293B"/><circle cx="58" cy="76" r="9" fill="#CBD5E1"/>
+  <circle cx="200" cy="76" r="22" fill="#1E293B"/><circle cx="200" cy="76" r="9" fill="#CBD5E1"/>
+  <rect x="234" y="44" width="16" height="7" rx="3" fill="#FDE68A"/>
+</g>
+  <rect x="40" y="200" width="120" height="40" rx="6" fill="#10B981"/><text x="100" y="227" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="700" fill="#fff">EV ONLY</text>
+</svg>
