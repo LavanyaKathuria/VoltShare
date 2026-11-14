@@ -1,0 +1,41 @@
+{
+  "name": "voltshare",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "emulators": "firebase emulators:start --import=./.emulator-data --export-on-exit",
+    "seed": "tsx scripts/seed.ts",
+    "test:rules": "firebase emulators:exec --only firestore,storage \"vitest run tests/rules\""
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "firebase": "^12.19.0",
+    "framer-motion": "^14.14.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.73.0",
+    "next": "^16.4.6",
+    "ngeohash": "^0.6.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/leaflet": "^1.9.22",
+    "@types/ngeohash": "^0.6.8",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "firebase-admin": "^14.5.1",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
