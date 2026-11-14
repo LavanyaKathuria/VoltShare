@@ -5,28 +5,11 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { ButtonLink } from "@/components/ui/Button";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarClock, MapPin, Menu, X } from "lucide-react";
-import Link from "next/link";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { LocationPicker } from "./LocationPicker";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { RoleChips, UserMenu, UserMenuLinks } from "./UserMenu";
-
-function FilterPill() {
-  return (
-    <Link
-      href="/explore"
-      className="hidden md:flex items-center gap-3 rounded-full border border-line bg-white px-4 py-2 text-sm shadow-soft hover:shadow-lift transition-shadow"
-    >
-      <span className="flex items-center gap-1.5 font-medium">
-        <MapPin className="h-4 w-4 text-sky" /> Bengaluru
-      </span>
-      <span className="h-4 w-px bg-line" />
-      <span className="flex items-center gap-1.5 text-muted">
-        <CalendarClock className="h-4 w-4" /> Today · <span className="num">Any time</span>
-      </span>
-    </Link>
-  );
-}
 
 function MobileAccount({ close }: { close: () => void }) {
   const { user, profile } = useAuth();
@@ -56,7 +39,7 @@ export function Navbar() {
     <header className="sticky top-0 z-[1000] border-b border-line/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6">
         <Logo />
-        <FilterPill />
+        <LocationPicker className="hidden md:block" />
         <div className="hidden lg:flex items-center gap-3">
           <RoleSwitcher />
           <UserMenu />
@@ -77,6 +60,7 @@ export function Navbar() {
               <div onClick={() => setOpen(false)}>
                 <RoleSwitcher className="w-full" />
               </div>
+              <LocationPicker compact className="md:hidden" onPicked={() => setOpen(false)} />
               <MobileAccount close={() => setOpen(false)} />
             </div>
           </motion.div>

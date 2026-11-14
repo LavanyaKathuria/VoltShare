@@ -6,10 +6,11 @@ import { applyFilters, DEFAULT_FILTERS, Filters, type FilterState } from "@/comp
 import { MapView, type MapMarker, type StationMarker } from "@/components/map/MapView";
 import { useChargersNear } from "@/hooks/useChargers";
 import { usePublicStations } from "@/hooks/usePublicStations";
-import { useMediaQuery, useUserLocation } from "@/hooks/useMedia";
+import { useMediaQuery } from "@/hooks/useMedia";
+import { useLocation } from "@/components/layout/LocationProvider";
 import { cn } from "@/lib/cn";
 import { formatRate, STATUS_COLOR } from "@/lib/chargers";
-import { CITY_CENTER, distanceKm, type LatLng } from "@/lib/geo";
+import { distanceKm, type LatLng } from "@/lib/geo";
 import { AnimatePresence, motion } from "framer-motion";
 import { Fuel, List, Loader2, LocateFixed, Map as MapIcon, RotateCw, SearchX, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -52,24 +53,36 @@ function StationsToggle({ on, onChange, enabled, count, loading }: { on: boolean
   );
 }
 
-function Empty({ onReset }: { onReset: () => void }) {
+function Empty({ onReset, filtered, label }: { onReset: () => void; filtered: boolean; label: string }) {
   return (
     <div className="card flex flex-col items-center p-10 text-center">
       <SearchX className="h-8 w-8 text-muted" />
-      <p className="mt-3 font-medium">No chargers match here</p>
-      <p className="mt-1 text-sm text-muted">Try clearing filters or moving the map.</p>
-      <button className="mt-4 text-sm font-medium text-sky-600 hover:underline" onClick={onReset}>
-        Clear filters
-      </button>
+      {filtered ? (
+        <>
+          <p className="mt-3 font-medium">No chargers match these filters</p>
+          <p className="mt-1 text-sm text-muted">Try clearing filters or moving the map.</p>
+          <button className="mt-4 text-sm font-medium text-sky-600 hover:underline" onClick={onReset}>
+            Clear filters
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="mt-3 font-medium">No chargers listed {label === "Near you" ? "near you" : `around ${label}`} yet</p>
+          <p className="mt-1 max-w-xs text-sm text-muted">Have a charger at home, a café or your society? Be the first host here.</p>
+          <a href="/host/chargers/new" className="mt-4 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
+            List your charger
+          </a>
+        </>
+      )}
     </div>
   );
 }
 
 export default function ExplorePage() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const userLoc = useUserLocation();
-  const [mapCenter, setMapCenter] = useState<LatLng>(CITY_CENTER);
-  const [query, setQuery] = useState<{ c: LatLng; r: number }>({ c: CITY_CENTER, r: 20_000 });
+  const { center, label, userLoc, place } = useLocation();
+  const [mapCenter, setMapCenter] = useState<LatLng>(center);
+  const [query, setQuery] = useState<{ c: LatLng; r: number }>({ c: center, r: 20_000 });
   const [moved, setMoved] = useState<{ c: LatLng; r: number } | null>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -77,15 +90,16 @@ export default function ExplorePage() {
   const [snap, setSnap] = useState<SheetSnap>("half");
   const [showStations, setShowStations] = useState(true);
 
-  // Jump to the user's location once we know it.
+  // Follow the navbar location picker (a city, or the user's current location).
   useEffect(() => {
-    if (!userLoc) return;
-    setMapCenter(userLoc);
-    setQuery({ c: userLoc, r: 20_000 });
-  }, [userLoc]);
+    setMapCenter(center);
+    setQuery({ c: center, r: 20_000 });
+    setMoved(null);
+    setSelectedId(null);
+  }, [center.lat, center.lng]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { chargers, loading } = useChargersNear(query.c, query.r);
-  const origin = userLoc ?? CITY_CENTER;
+  const origin = userLoc ?? center;
 
   const list = useMemo(
     () => applyFilters(chargers.map((c) => ({ ...c, dist: distanceKm(origin, { lat: c.approxLat, lng: c.approxLng }) })), filters),
@@ -133,7 +147,7 @@ export default function ExplorePage() {
         <h1 className="text-lg font-bold md:text-xl">
           {loading ? "Finding chargers…" : `${list.length} charger${list.length === 1 ? "" : "s"} nearby`}
         </h1>
-        <p className="text-xs text-muted">{userLoc ? "Sorted from your location" : "Around MG Road, Bengaluru"} · live availability</p>
+        <p className="text-xs text-muted">{place.kind === "here" ? "Near your current location" : `Around ${label}`} · live availability</p>
       </div>
       {loading && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
     </div>
@@ -179,7 +193,13 @@ export default function ExplorePage() {
       ))}
     </div>
   ) : (
-    !loading && <Empty onReset={() => setFilters(DEFAULT_FILTERS)} />
+    !loading && (
+      <Empty
+        onReset={() => setFilters(DEFAULT_FILTERS)}
+        filtered={chargers.length > 0}
+        label={label}
+      />
+    )
   );
 
   if (isDesktop === null) return <div className="h-[calc(100dvh-4rem)] animate-pulse bg-slate-50" />;

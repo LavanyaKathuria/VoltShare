@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { ACCESS_TYPES, CONNECTORS } from "@/lib/chargers";
 import { db, storage } from "@/lib/firebase/client";
-import { CITY_CENTER, distanceKm, fuzzLocation, geohash, type LatLng } from "@/lib/geo";
+import { distanceKm, fuzzLocation, geohash, type LatLng } from "@/lib/geo";
+import { CITIES, cityByName } from "@/lib/cities";
+import { useLocation } from "@/components/layout/LocationProvider";
 import { compressImage } from "@/lib/images";
 import type { AccessType, Charger, ChargerPrivate, Connector } from "@/types";
 import { collection, doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { ImagePlus, Loader2, LocateFixed, Lock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 type Photo = { url: string; file?: File };
 
@@ -79,7 +81,14 @@ export function ChargerForm({ existing, existingPrivate }: { existing?: Charger;
   const [openTime, setOpenTime] = useState(existing?.openTime ?? "08:00");
   const [closeTime, setCloseTime] = useState(existing?.closeTime ?? "22:00");
   const [area, setArea] = useState(existing?.area ?? "");
-  const [city, setCity] = useState(existing?.city ?? "Bengaluru");
+  const loc = useLocation();
+  const [city, setCity] = useState(existing?.city ?? (loc.place.kind === "city" ? loc.label : ""));
+  // Where the location map starts: the pin if set, else the typed city, else the navbar location.
+  const [mapCenter, setMapCenter] = useState<LatLng>(loc.center);
+  useEffect(() => {
+    const c = cityByName(city);
+    if (c) setMapCenter(c.center);
+  }, [city]);
   const [address, setAddress] = useState(existingPrivate?.address ?? "");
   const [accessNotes, setAccessNotes] = useState(existingPrivate?.accessNotes ?? "");
   const [exact, setExact] = useState<LatLng | null>(existingPrivate ? { lat: existingPrivate.exactLat, lng: existingPrivate.exactLng } : null);
@@ -275,7 +284,12 @@ export function ChargerForm({ existing, existingPrivate }: { existing?: Charger;
             <input className={input} value={area} onChange={(e) => setArea(e.target.value)} required minLength={2} maxLength={60} placeholder="Indiranagar" />
           </Field>
           <Field label="City">
-            <input className={input} value={city} onChange={(e) => setCity(e.target.value)} required maxLength={40} />
+            <input className={input} value={city} onChange={(e) => setCity(e.target.value)} required maxLength={40} list="vs-cities" placeholder="e.g. Pune" />
+            <datalist id="vs-cities">
+              {CITIES.map((c) => (
+                <option key={c.id} value={c.name} />
+              ))}
+            </datalist>
           </Field>
         </div>
         <div>
@@ -286,9 +300,11 @@ export function ChargerForm({ existing, existingPrivate }: { existing?: Charger;
             </button>
           </div>
           <div className="mt-1.5 h-64 overflow-hidden rounded-xl border border-line">
-            <MapView center={exact ?? CITY_CENTER} zoom={exact ? 16 : 12} pin={exact} onPinChange={setExact} />
+            <MapView center={exact ?? mapCenter} zoom={exact ? 16 : 12} pin={exact} onPinChange={setExact} />
           </div>
-          <p className="mt-1 text-xs text-muted">{exact ? "Drag the pin to fine-tune." : "Tap the map to drop a pin."}</p>
+          <p className="mt-1 text-xs text-muted">
+            {exact ? "Drag the pin to fine-tune." : "Choose the City above to jump there, zoom in on your street, then tap to drop a pin."}
+          </p>
         </div>
         <div className="rounded-xl border border-dashed border-line bg-slate-50/60 p-4">
           <p className="flex items-center gap-1.5 text-sm font-medium">

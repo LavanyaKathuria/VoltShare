@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { LocationProvider } from "@/components/layout/LocationProvider";
 import { ModeProvider } from "@/components/layout/ModeProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "@/components/ui/Toaster";
@@ -20,12 +21,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-IN" className={`${jakarta.variable} ${inter.variable} ${jetbrains.variable}`}>
       <body className="min-h-dvh">
         <AuthProvider>
-          <ModeProvider>
-            <Toaster>
-              <Navbar />
-              {children}
-            </Toaster>
-          </ModeProvider>
+          <LocationProvider>
+            <ModeProvider>
+              <Toaster>
+                <Navbar />
+                {children}
+              </Toaster>
+            </ModeProvider>
+          </LocationProvider>
         </AuthProvider>
       </body>
     </html>
