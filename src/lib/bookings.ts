@@ -68,3 +68,15 @@ export function friendlyBookingError(e: unknown) {
   if (code === "failed-precondition" || code === "aborted") return "Slot just taken! Pick another time.";
   return (e as Error)?.message ?? "Booking failed.";
 }
+
+export const checkIn = (groupId: string, pin: string, lat: number, lng: number, accuracy?: number) =>
+  httpsCallable<{ groupId: string; pin: string; lat: number; lng: number; accuracy?: number }, { status: string; distanceM?: number }>(
+    functions,
+    "checkIn",
+  )({ groupId, pin, lat, lng, accuracy });
+
+export const checkOut = (groupId: string, kwh: number, photoPath?: string) =>
+  httpsCallable<{ groupId: string; kwh: number; photoPath?: string }, { status: string }>(functions, "checkOut")({ groupId, kwh, photoPath });
+
+/** Firebase callable errors arrive as "Message. [400]" — keep just the human part. */
+export const callableMessage = (e: unknown) => ((e as Error)?.message ?? "Something went wrong.").replace(/\s*\[\d+\]\s*$/, "");

@@ -42,6 +42,15 @@ Public `chargers/{id}` docs only hold an approximate point — the real location
 - New bookings are `pending` (held for 10 min). Payment (mocked, test mode) calls the `confirmBooking` function → `confirmed`, issues the 4-digit PIN and grants address access. `cancelBooking` and the scheduled `releaseExpiredHolds` archive to `bookingHistory` and free the slots.
 - **Concurrency demo:** on any charger page, *Simulate concurrent booking* fires your transaction and a “Rival Driver” transaction (server-side, via `simulateRivalBooking`) for the same slot at the same instant — exactly one wins. Or open the same charger in two tabs and book the same slot.
 
+## Self check-in, live session, check-out & billing
+
+- **Address reveal:** once confirmed, *My bookings* and the charger page show the exact address and gate notes, readable only through the `renterAccess` grant.
+- **Check-in** (`checkIn` function): PIN + time window (from 10 min before the slot until it ends) + **≤100 m geofence verified on the server** against the private coordinates. Sets the booking `active` and the charger's map pin to amber. For demos away from Bengaluru, the dialog has a clearly labelled *“Demo: pretend I'm at the charger”* option.
+- **Live session:** dark telemetry card with a kWh progress ring, elapsed/remaining time and running cost (simulated meter: rated power × 90% × time).
+- **Check-out** (`checkOut` function): kWh reading (sanity-capped by charger power × booked time) + optional meter photo in Storage (`checkout/{uid}/{bookingId}/…`, readable by renter, host and admins).
+- **Billing** (`billOnComplete` Firestore trigger): `kWh × rate + 15% platform fee`, written to the booking, plus atomic increments to `hostStats/{ownerId}` (earnings, kWh, sessions, per-day, per-charger). Guarded by `billedAt`, so retries never double-count.
+- **Scheduled** `revokeExpiredAccess` (every 10 min): deletes access grants whose slot has ended, and auto-closes sessions nobody checked out of 30 min after the slot (flagged `autoClosed`).
+
 ## Map
 
 `src/components/map/MapView.tsx` is a provider-neutral wrapper (`types.ts` defines the contract). Today it lazy-loads `LeafletMap` (CARTO Voyager tiles, no key). To switch to Google Maps, implement the same props in a `GoogleMap.tsx` and change the one dynamic import.

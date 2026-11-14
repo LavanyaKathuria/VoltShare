@@ -16,7 +16,12 @@ service firebase.storage {
 
     // Check-out meter photos: checkout/{renterUid}/{bookingId}/{file} (used in Phase 5)
     match /checkout/{renterUid}/{bookingId}/{fileName} {
-      allow read: if request.auth != null && (request.auth.uid == renterUid || request.auth.token.get('admin', false) == true);
+      // Renter, admin, or the host of the booked charger (cross-service lookup of the booking).
+      allow read: if request.auth != null && (
+        request.auth.uid == renterUid
+        || request.auth.token.get('admin', false) == true
+        || firestore.get(/databases/(default)/documents/bookings/$(bookingId)).data.ownerId == request.auth.uid
+      );
       allow create: if request.auth != null && request.auth.uid == renterUid
         && request.resource.size < 8 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');

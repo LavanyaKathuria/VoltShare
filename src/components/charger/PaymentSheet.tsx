@@ -2,7 +2,7 @@
 
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { cancelBooking, confirmBooking } from "@/lib/bookings";
+import { cancelBooking, confirmBooking, callableMessage } from "@/lib/bookings";
 import { formatINR } from "@/lib/chargers";
 import { formatDateKey, slotEndLabel, slotLabel } from "@/lib/time";
 import { CheckCircle2, CreditCard, Loader2, ShieldCheck, Smartphone, Timer } from "lucide-react";
@@ -66,7 +66,7 @@ export function PaymentSheet({ pending, onDone }: { pending: PendingBooking | nu
       await confirmBooking(pending!.groupId, `mock_${method}_${Date.now().toString(36)}`);
       setStep("done");
     } catch (e) {
-      setError((e as Error).message);
+      setError(callableMessage(e));
     } finally {
       setBusy(null);
     }

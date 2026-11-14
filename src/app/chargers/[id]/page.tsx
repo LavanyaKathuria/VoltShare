@@ -9,7 +9,7 @@ import { MapView } from "@/components/map/MapView";
 import { Avatar } from "@/components/ui/Avatar";
 import { ConnectorBadge, Pill, StatusBadge, VerifiedBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { useCharger, useChargerPrivate } from "@/hooks/useChargers";
+import { useCharger, useChargerPrivate, useRenterAccess } from "@/hooks/useChargers";
 import { ACCESS_LABEL, CONNECTOR_SHORT, formatINR, formatRate, PLATFORM_FEE, to12h } from "@/lib/chargers";
 import { PRIVACY_RADIUS_M } from "@/lib/geo";
 import { ArrowLeft, BadgeCheck, CheckCircle2, Clock, Gauge, IndianRupee, KeyRound, Lock, MapPin, Plug } from "lucide-react";
@@ -24,7 +24,8 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
   const { user, claims } = useAuth();
   const isOwner = !!user && charger?.ownerId === user.uid;
   // Rules decide who may read this; we only *try* when it could succeed (owner/admin; renters in Phase 5).
-  const { details } = useChargerPrivate(id, !!user && (isOwner || claims.admin));
+  const hasAccess = useRenterAccess(id, user?.uid);
+  const { details } = useChargerPrivate(id, !!user && (isOwner || claims.admin || hasAccess));
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [sheet, setSheet] = useState(false);
 
@@ -137,7 +138,7 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
             {details ? (
               <div className="mt-3 rounded-xl border border-brand/30 bg-mint/50 p-4 text-sm">
                 <p className="flex items-center gap-1.5 font-medium text-avail-fg">
-                  <KeyRound className="h-4 w-4" /> {isOwner ? "Private details (only you and confirmed renters see this)" : "Private details"}
+                  <KeyRound className="h-4 w-4" /> {isOwner ? "Private details (only you and confirmed renters see this)" : "Unlocked for your booking"}
                 </p>
                 <p className="mt-2">{details.address}</p>
                 {details.accessNotes && <p className="mt-1 text-muted">{details.accessNotes}</p>}

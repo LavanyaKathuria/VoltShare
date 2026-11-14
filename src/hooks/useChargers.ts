@@ -71,7 +71,10 @@ export function useChargerPrivate(id: string | undefined, enabled: boolean) {
   const [denied, setDenied] = useState(false);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    if (!id || !enabled) return;
+    if (!id || !enabled) {
+      setDetails(null);
+      return;
+    }
     return onSnapshot(
       doc(db, "chargers", id, "private", "details"),
       (s) => {
@@ -107,4 +110,18 @@ export function useAllChargers(enabled: boolean) {
     return onSnapshot(collection(db, "chargers"), (s) => setChargers(s.docs.map((d) => toCharger(d.id, d.data()))));
   }, [enabled]);
   return chargers;
+}
+
+/** True while the signed-in renter holds a live renterAccess grant for this charger. */
+export function useRenterAccess(chargerId: string | undefined, uid: string | undefined) {
+  const [has, setHas] = useState(false);
+  useEffect(() => {
+    if (!chargerId || !uid) return setHas(false);
+    return onSnapshot(
+      doc(db, "renterAccess", `${chargerId}_${uid}`),
+      (s) => setHas(s.exists()),
+      () => setHas(false),
+    );
+  }, [chargerId, uid]);
+  return has;
 }
