@@ -88,6 +88,9 @@ export interface Booking {
   energyCost?: number;
   platformFee?: number;
   amount?: number;
+  hostEarning?: number;
+  meterPhotoPath?: string | null;
+  autoClosed?: boolean;
 }
 
 /** slots/{same id as booking} — public, no personal data. Drives live slot pills. */

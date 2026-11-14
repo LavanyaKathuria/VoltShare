@@ -8,7 +8,7 @@
  */
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { fuzzLocation, geohash } from "../src/lib/geo";
 
 const PROD = process.env.SEED_PROD === "1";
@@ -109,7 +109,7 @@ async function seedChargers(uids: Record<string, string>) {
     const existing = await db.collection("chargers").get();
     for (const d of existing.docs) if (!keep.has(d.id)) await db.recursiveDelete(d.ref);
     // …and start with an empty booking calendar.
-    for (const col of ["bookings", "slots", "bookingHistory", "renterAccess"]) await db.recursiveDelete(db.collection(col));
+    for (const col of ["bookings", "slots", "bookingHistory", "renterAccess", "hostStats", "platformStats"]) await db.recursiveDelete(db.collection(col));
   }
   const batch = db.batch();
   for (const c of CHARGERS) {
@@ -155,10 +155,128 @@ async function seedChargers(uids: Record<string, string>) {
   console.log(`  ✓ ${CHARGERS.length} chargers`);
 }
 
+// ---------- demo booking history ----------
+// Deterministic PRNG so re-seeding gives the same numbers.
+let seedState = 42;
+const rand = () => ((seedState = (seedState * 1664525 + 1013904223) % 4294967296) / 4294967296);
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const IST = 330 * 60_000;
+const dayKey = (offsetDays: number) => new Date(Date.now() + IST + offsetDays * 86_400_000).toISOString().slice(0, 10);
+const slotStartMs = (date: string, slot: string) => {
+  const [y, m, d] = date.split("-").map(Number);
+  return Date.UTC(y, m - 1, d) + (Number(slot.slice(0, 2)) * 60 + Number(slot.slice(2))) * 60_000 - IST;
+};
+const pad = (n: number) => String(n).padStart(2, "0");
+const slotsFrom = (start: string, n: number) =>
+  Array.from({ length: n }, (_, i) => {
+    const t = Number(start.slice(0, 2)) * 60 + Number(start.slice(2)) + i * 30;
+    return pad(Math.floor(t / 60)) + pad(t % 60);
+  });
+
+async function seedBookings(uids: Record<string, string>) {
+  const charger = Object.fromEntries(CHARGERS.map((c) => [c.id, c]));
+  const renters = [
+    { email: "renter@demo.com", name: "Riya Sharma" },
+    { email: "priya@demo.com", name: "Priya Nair" },
+    { email: "meera@demo.com", name: "Meera Iyer" },
+    { email: "sanjay@demo.com", name: "Sanjay Kulkarni" },
+  ];
+  const hostStats: Record<string, { totalEarnings: number; totalKwh: number; sessions: number; byDay: Record<string, number>; byCharger: Record<string, number> }> = {};
+  const platform = { platformRevenue: 0, totalKwh: 0, sessions: 0 };
+  // Firestore batches cap at 500 writes, so queue writes and commit in chunks.
+  const ops: [string, Record<string, unknown>][] = [];
+  const batch = { set: (ref: FirebaseFirestore.DocumentReference, data: Record<string, unknown>) => ops.push([ref.path, data]) };
+  const starts = ["0900", "1100", "1400", "1700", "1930"];
+
+  const write = (c: Seed, date: string, slots: string[], renter: (typeof renters)[number], status: "completed" | "confirmed", extra: Record<string, unknown> = {}, allSlots: Record<string, unknown> = {}) => {
+    const groupId = `${c.id}_${date}_${slots[0]}`;
+    for (const s of slots) {
+      const id = `${c.id}_${date}_${s}`;
+      const startMs = slotStartMs(date, s);
+      batch.set(db.doc(`bookings/${id}`), {
+        groupId, groupSlots: slots, chargerId: c.id, chargerTitle: c.title, area: c.area,
+        renterId: uids[renter.email], renterName: renter.name, ownerId: uids[c.host],
+        date, slot: s, startAt: Timestamp.fromMillis(startMs), endAt: Timestamp.fromMillis(startMs + 30 * 60_000),
+        status, ratePerKwh: c.rate, powerKw: c.kw, demo: true,
+        createdAt: Timestamp.fromMillis(slotStartMs(date, slots[0]) - 86_400_000),
+        ...allSlots,
+        ...(id === groupId ? extra : {}),
+      });
+      batch.set(db.doc(`slots/${id}`), { chargerId: c.id, date, slot: s, status: "booked" });
+    }
+    return groupId;
+  };
+
+  // Past 6 days + earlier today: completed, billed sessions on every online charger (busier for verified hosts).
+  for (let day = -6; day <= 0; day++) {
+    const date = dayKey(day);
+    for (const c of CHARGERS) {
+      if (c.online === false) continue;
+      const sessions = rand() < (c.host === "sanjay@demo.com" ? 0.35 : 0.6) ? 1 + (rand() < 0.3 ? 1 : 0) : 0;
+      for (let k = 0; k < sessions; k++) {
+        const start = starts[Math.floor(rand() * starts.length)];
+        const n = 1 + Math.floor(rand() * 4);
+        const slots = slotsFrom(start, n);
+        if (day === 0 && slotStartMs(date, slots[n - 1]) + 30 * 60_000 > Date.now()) continue; // only sessions that have ended
+        const open = c.open ?? "08:00", close = c.close ?? "22:00";
+        if (slots[0] < open.replace(":", "") || slots[n - 1] >= close.replace(":", "")) continue;
+        const renter = renters.find((r) => r.email !== c.host && rand() < 0.6) ?? renters[0];
+        if (renter.email === c.host) continue;
+        const kwh = r2(Math.min(40, c.kw * 0.9 * (n / 2) * (0.55 + rand() * 0.4)));
+        const energyCost = r2(kwh * c.rate);
+        const platformFee = r2(energyCost * 0.15);
+        const endMs = slotStartMs(date, slots[n - 1]) + 30 * 60_000;
+        write(c, date, slots, renter, "completed", {
+          kwh, energyCost, platformFee, amount: r2(energyCost + platformFee), hostEarning: energyCost,
+          checkedInAt: Timestamp.fromMillis(slotStartMs(date, slots[0]) + 3 * 60_000),
+          checkedOutAt: Timestamp.fromMillis(endMs - 2 * 60_000), billedAt: Timestamp.fromMillis(endMs),
+          meterPhotoPath: null,
+        }, { pin: "0000", checkedOutAt: Timestamp.fromMillis(endMs - 2 * 60_000) });
+        const h = (hostStats[uids[c.host]] ??= { totalEarnings: 0, totalKwh: 0, sessions: 0, byDay: {}, byCharger: {} });
+        h.totalEarnings = r2(h.totalEarnings + energyCost);
+        h.totalKwh = r2(h.totalKwh + kwh);
+        h.sessions += 1;
+        h.byDay[date] = r2((h.byDay[date] ?? 0) + energyCost);
+        h.byCharger[c.id] = r2((h.byCharger[c.id] ?? 0) + energyCost);
+        platform.platformRevenue = r2(platform.platformRevenue + platformFee);
+        platform.totalKwh = r2(platform.totalKwh + kwh);
+        platform.sessions += 1;
+      }
+    }
+  }
+
+  // Tomorrow: two confirmed bookings so the renter and host demos have something upcoming.
+  const tomorrow = dayKey(1);
+  const upcoming: [string, string, number, (typeof renters)[number]][] = [
+    ["blr-indiranagar-01", "1000", 2, renters[0]],
+    ["blr-hsr-01", "1800", 3, renters[2]],
+  ];
+  for (const [cid, start, n, renter] of upcoming) {
+    const c = charger[cid];
+    const slots = slotsFrom(start, n);
+    const pin = String(1000 + Math.floor(rand() * 9000));
+    const groupId = write(c, tomorrow, slots, renter, "confirmed", {}, { pin, confirmedAt: Timestamp.now(), paymentRef: "demo" });
+    batch.set(db.doc(`renterAccess/${c.id}_${uids[renter.email]}`), {
+      chargerId: c.id, renterId: uids[renter.email], ownerId: uids[c.host], groupIds: [groupId],
+      expiresAt: Timestamp.fromMillis(slotStartMs(tomorrow, slots[n - 1]) + 30 * 60_000), createdAt: Timestamp.now(),
+    });
+  }
+
+  for (const [owner, h] of Object.entries(hostStats)) batch.set(db.doc(`hostStats/${owner}`), { ownerId: owner, ...h, demo: true });
+  batch.set(db.doc("platformStats/global"), { ...platform, demo: true });
+  for (let i = 0; i < ops.length; i += 400) {
+    const b = db.batch();
+    ops.slice(i, i + 400).forEach(([path, data]) => b.set(db.doc(path), data));
+    await b.commit();
+  }
+  console.log(`  ✓ ${platform.sessions} past sessions (₹${platform.platformRevenue} platform fees), 2 upcoming bookings`);
+}
+
 async function main() {
   console.log(`Seeding ${PROD ? "PRODUCTION project " + projectId : "emulators (" + projectId + ")"}…`);
   const uids = await seedUsers();
   await seedChargers(uids);
+  await seedBookings(uids);
   console.log(`Done. Demo password: ${DEMO_PASSWORD}`);
 }
 

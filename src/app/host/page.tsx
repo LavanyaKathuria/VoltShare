@@ -6,13 +6,19 @@ import { ChargerPhoto } from "@/components/explore/ChargerPhoto";
 import { ConnectorBadge, Pill, VerifiedBadge } from "@/components/ui/Badge";
 import { Toggle } from "@/components/ui/Toggle";
 import { useMyChargers } from "@/hooks/useChargers";
-import { formatRate } from "@/lib/chargers";
+import { useHostBookings, useHostStats } from "@/hooks/useHost";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { DailyEarnings, EarningsByCharger } from "@/components/host/EarningsCharts";
+import { BookingTimeline, RecentSessions } from "@/components/host/HostBookings";
+import { dateKeyIST } from "@/lib/time";
+import type { Charger } from "@/types";
+import { formatINR, formatRate } from "@/lib/chargers";
 import { db } from "@/lib/firebase/client";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
-import { BadgeCheck, BadgeIndianRupee, CalendarClock, Clock, Loader2, Pencil, Plus, PlugZap, ShieldCheck } from "lucide-react";
+import { BadgeCheck, BadgeIndianRupee, BatteryCharging, CalendarClock, Clock, Loader2, Pencil, Plus, PlugZap, ShieldCheck, Zap } from "lucide-react";
 import { useState } from "react";
 
 const PERKS = [
@@ -71,9 +77,7 @@ function BecomeHost() {
   );
 }
 
-function MyChargers() {
-  const { user } = useAuth();
-  const chargers = useMyChargers(user?.uid);
+function MyChargers({ chargers }: { chargers: Charger[] | null }) {
   const [busy, setBusy] = useState<string | null>(null);
 
   if (!chargers) return <div className="card grid h-40 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-muted" /></div>;
@@ -88,7 +92,7 @@ function MyChargers() {
     );
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {chargers.map((c) => (
         <div key={c.id} className="card overflow-hidden">
           <Link href={`/chargers/${c.id}`} className="block">
@@ -133,10 +137,31 @@ function MyChargers() {
   );
 }
 
-function HostHome() {
-  const { profile } = useAuth();
+function Stat({ Icon, label, children, sub }: { Icon: typeof Zap; label: string; children: React.ReactNode; sub?: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="card p-4">
+      <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </p>
+      <p className="num mt-2 text-2xl font-medium">{children}</p>
+      {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+    </div>
+  );
+}
+
+function HostHome() {
+  const { user, profile } = useAuth();
+  const chargers = useMyChargers(user?.uid);
+  const stats = useHostStats(user?.uid);
+  const groups = useHostBookings(user?.uid);
+  const today = dateKeyIST();
+  const todayEarnings = stats?.byDay[today] ?? 0;
+  const online = chargers?.filter((c) => c.online).length ?? 0;
+  const activeNow = groups?.filter((g) => g.status === "active").length ?? 0;
+  const names = Object.fromEntries((chargers ?? []).map((c) => [c.id, c.title]));
+
+  return (
+    <div className="mx-auto max-w-6xl">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -147,12 +172,61 @@ function HostHome() {
               <Pill className="bg-busy-bg text-busy-fg"><Clock className="h-3 w-3" /> Verification pending</Pill>
             )}
           </div>
-          <p className="mt-1 text-muted">Hi {profile?.name?.split(" ")[0]} — flip a charger offline any time; the map updates instantly.</p>
+          <p className="mt-1 text-muted">Hi {profile?.name?.split(" ")[0]} — everything here updates live.</p>
         </div>
         <ButtonLink href="/host/chargers/new" variant="brand"><Plus className="h-4 w-4" /> Add charger</ButtonLink>
       </div>
+
+      {/* Stats */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative overflow-hidden rounded-2xl bg-ink p-4 text-white shadow-lift sm:col-span-2 lg:col-span-1">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand/30 blur-2xl" />
+          <p className="relative flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-dot" /> Live earnings
+          </p>
+          <p className="relative mt-2 text-3xl font-medium" data-testid="live-earnings">
+            <AnimatedNumber value={stats?.totalEarnings ?? 0} format={(n) => formatINR(n)} className="num" />
+          </p>
+          <p className="relative mt-0.5 text-xs text-slate-400">
+            Today <span className="num text-emerald-300">{formatINR(todayEarnings)}</span> · computed by Cloud Functions
+          </p>
+        </div>
+        <Stat Icon={Zap} label="Energy delivered" sub="all time">
+          <AnimatedNumber value={stats?.totalKwh ?? 0} format={(n) => `${n.toFixed(1)} kWh`} />
+        </Stat>
+        <Stat Icon={BatteryCharging} label="Sessions" sub={activeNow ? <span className="font-medium text-busy-fg">{activeNow} charging right now</span> : "completed"}>
+          <AnimatedNumber value={stats?.sessions ?? 0} format={(n) => String(Math.round(n))} />
+        </Stat>
+        <Stat Icon={PlugZap} label="Chargers online" sub={chargers?.length ? "toggle below" : "add one to start earning"}>
+          {online}/{chargers?.length ?? 0}
+        </Stat>
+      </div>
+
+      {/* Timeline + charts */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
+        <section className="card p-5">
+          <h2 className="text-lg">Upcoming bookings</h2>
+          <p className="mb-4 text-sm text-muted">Across all your chargers · renters’ first names only</p>
+          <BookingTimeline groups={groups} />
+        </section>
+        <div className="space-y-6">
+          <section className="card p-5">
+            <DailyEarnings byDay={stats?.byDay ?? {}} />
+          </section>
+          <section className="card p-5">
+            <EarningsByCharger byCharger={stats?.byCharger ?? {}} names={names} />
+          </section>
+        </div>
+      </div>
+
       <h2 className="mb-3 mt-8 text-lg">Your chargers</h2>
-      <MyChargers />
+      <MyChargers chargers={chargers} />
+
+      <section className="card mt-8 p-5">
+        <h2 className="text-lg">Recent sessions</h2>
+        <p className="mb-3 text-sm text-muted">You earn the full energy price; the 15% platform fee is paid by the renter.</p>
+        <RecentSessions groups={groups} />
+      </section>
     </div>
   );
 }
@@ -164,7 +238,7 @@ function HostGate() {
 
 export default function HostPage() {
   return (
-    <main className="px-4 py-10 sm:px-6">
+    <main className="px-4 py-8 sm:px-6">
       <RequireAuth>
         <HostGate />
       </RequireAuth>

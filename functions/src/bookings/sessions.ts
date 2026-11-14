@@ -77,7 +77,7 @@ export const checkOut = onCall<{ groupId: string; kwh: number; photoPath?: strin
   const maxKwh = Math.min(MAX_SESSION_KWH, b.powerKw * bookedHours * 1.1 + 0.5);
   if (typeof kwh !== "number" || !isFinite(kwh) || kwh <= 0 || kwh > maxKwh)
     throw new HttpsError("invalid-argument", `Enter a reading between 0 and ${maxKwh.toFixed(1)} kWh.`);
-  if (photoPath !== undefined && !String(photoPath).startsWith(`checkout/${req.auth.uid}/${b.groupId}/`))
+  if (photoPath != null && !String(photoPath).startsWith(`checkout/${req.auth.uid}/${b.groupId}/`))
     throw new HttpsError("invalid-argument", "Bad photo path.");
 
   const batch = db.batch();

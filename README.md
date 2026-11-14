@@ -53,6 +53,12 @@ Public `chargers/{id}` docs only hold an approximate point — the real location
 - **Billing** (`billOnComplete` Firestore trigger): `kWh × rate + 15% platform fee`, written to the booking, plus atomic increments to `hostStats/{ownerId}` (earnings, kWh, sessions, per-day, per-charger). Guarded by `billedAt`, so retries never double-count.
 - **Scheduled** `revokeExpiredAccess` (every 10 min): deletes access grants whose slot has ended, and auto-closes sessions nobody checked out of 30 min after the slot (flagged `autoClosed`).
 
+## Host dashboard
+
+`/host` (Host Mode): live earnings counter, energy delivered, sessions and chargers online — all read from `hostStats/{uid}`, which only the billing Cloud Function writes. Plus a live timeline of upcoming and in-progress bookings across all the host's chargers (renters' first names only; host can cancel), 7-day earnings and per-charger earnings charts, Online/Offline toggles with the *DISCOM EV Meter Verified* compliance badge, and recent sessions with meter photos.
+
+`npm run seed` adds a week of fictional completed sessions (billed with the same formula as the trigger) and two confirmed bookings for tomorrow, so every dashboard has data in a demo.
+
 ## Public stations layer (optional)
 
 Set `OCM_API_KEY` (free key from [Open Charge Map](https://openchargemap.org/site/develop/api), server-side only) to show real **public** charging stations as grey, non-bookable dots on the explorer map — for context on how sparse public charging is. The browser calls `/api/public-stations`, a Next.js route that adds the key server-side and caches results for a day. Without a key, the toggle shows “(off)” and nothing is invented.
