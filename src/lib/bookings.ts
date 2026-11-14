@@ -52,8 +52,9 @@ export async function bookSlots(c: Charger, date: string, slots: string[], rente
   return groupId;
 }
 
-export const confirmBooking = (groupId: string, paymentRef?: string) =>
-  httpsCallable<{ groupId: string; paymentRef?: string }, { status: string }>(functions, "confirmBooking")({ groupId, paymentRef });
+type RazorpayProof = { orderId: string; paymentId: string; signature: string };
+export const confirmBooking = (groupId: string, paymentRef?: string, razorpay?: RazorpayProof) =>
+  httpsCallable<{ groupId: string; paymentRef?: string; razorpay?: RazorpayProof }, { status: string }>(functions, "confirmBooking")({ groupId, paymentRef, razorpay });
 
 export const cancelBooking = (groupId: string) =>
   httpsCallable<{ groupId: string }, { status: string }>(functions, "cancelBooking")({ groupId });

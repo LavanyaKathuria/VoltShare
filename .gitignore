@@ -15,3 +15,7 @@ ui-debug.log
 storage-debug.log
 .DS_Store
 *.zip
+functions/.env
+functions/.env.*
+!functions/.env.example
+pglite-debug.log

@@ -11,7 +11,8 @@
     "seed": "tsx scripts/seed.ts",
     "test:rules": "firebase emulators:exec --project demo-voltshare --only firestore,storage \"vitest run tests/rules\"",
     "postinstall": "npm --prefix functions install --no-audit --no-fund",
-    "test:unit": "vitest run tests/unit"
+    "test:unit": "vitest run tests/unit",
+    "make-admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

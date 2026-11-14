@@ -16,10 +16,11 @@ import {
   Zap,
 } from "lucide-react";
 
+// Plain-language problem framing. Add sourced figures here if you want numbers on the page.
 const PROBLEMS = [
-  { Icon: Building2, stat: "~70%", text: "of urban EV owners in India live in apartments where installing a personal charger is hard or impossible." },
-  { Icon: Car, stat: "1 : 135", text: "public chargers to EVs on the road — so the chargers that exist are scarce, crowded and far apart." },
-  { Icon: BatteryCharging, stat: "20+ hrs", text: "a day that private chargers at homes, cafés, hotels and societies sit idle and earn nothing." },
+  { Icon: Building2, stat: "No place to plug in", text: "Many urban EV owners live in apartments, where installing a personal charger needs society approval, a dedicated bay and often a separate connection." },
+  { Icon: Car, stat: "Scarce public chargers", text: "Public stations are few, unevenly spread and often occupied — hardest of all for cab and delivery drivers who charge every day." },
+  { Icon: BatteryCharging, stat: "Idle private chargers", text: "Chargers at homes, cafés, hotels and housing societies sit unused for most of the day, earning nothing." },
 ];
 
 const STEPS = [
@@ -77,20 +78,19 @@ export default function Landing() {
             <p className="text-sm font-semibold text-sky">The problem</p>
             <h2 className="mt-2 text-3xl sm:text-4xl">India’s EV owners have cars. Not chargers.</h2>
             <p className="mt-4 text-muted">
-              The fastest-growing group of EV buyers — apartment dwellers, cab and delivery drivers — are the ones with the
-              least access to charging. Meanwhile, thousands of private chargers already exist, and sit idle.
+              Many new EV owners — apartment dwellers, cab and delivery drivers — have the least access to charging.
+              Meanwhile, a growing number of private chargers already exist, and sit idle.
             </p>
           </FadeIn>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {PROBLEMS.map(({ Icon, stat, text }, i) => (
               <FadeIn key={stat} delay={i * 0.06} className="card p-6">
                 <Icon className="h-6 w-6 text-sky" />
-                <p className="num mt-4 text-3xl font-medium">{stat}</p>
+                <p className="mt-4 font-display text-xl font-bold tracking-tight">{stat}</p>
                 <p className="mt-2 text-sm text-muted">{text}</p>
               </FadeIn>
             ))}
           </div>
-          <p className="mt-4 text-xs text-muted">Figures are indicative estimates for illustration.</p>
         </div>
       </section>
 

@@ -7,6 +7,8 @@ import { formatINR } from "@/lib/chargers";
 import { formatDateKey, slotEndLabel, slotLabel } from "@/lib/time";
 import { CheckCircle2, CreditCard, Loader2, ShieldCheck, Smartphone, Timer } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { payWithRazorpay, razorpayEnabled } from "@/lib/razorpay";
 import { CostBreakdown } from "./Cost";
 
 export type PendingBooking = {
@@ -42,6 +44,8 @@ function Countdown({ from }: { from: number }) {
  * metered kWh at check-out by a Cloud Function. With Razorpay keys, this is where Checkout opens.
  */
 export function PaymentSheet({ pending, onDone }: { pending: PendingBooking | null; onDone: () => void }) {
+  const { user, profile } = useAuth();
+  const live = razorpayEnabled();
   const [step, setStep] = useState<"pay" | "done">("pay");
   const [busy, setBusy] = useState<"pay" | "cancel" | null>(null);
   const [method, setMethod] = useState<"upi" | "card">("upi");
@@ -62,8 +66,14 @@ export function PaymentSheet({ pending, onDone }: { pending: PendingBooking | nu
     setBusy("pay");
     setError(null);
     try {
-      await new Promise((r) => setTimeout(r, 700)); // simulated gateway round-trip
-      await confirmBooking(pending!.groupId, `mock_${method}_${Date.now().toString(36)}`);
+      if (live) {
+        // Razorpay TEST MODE: server-created order → Checkout → server verifies the signature.
+        const proof = await payWithRazorpay(pending!.groupId, `${pending!.chargerTitle} · ${range}`, { name: profile?.name, email: user?.email ?? undefined });
+        await confirmBooking(pending!.groupId, undefined, proof);
+      } else {
+        await new Promise((r) => setTimeout(r, 700)); // simulated gateway round-trip
+        await confirmBooking(pending!.groupId, `mock_${method}_${Date.now().toString(36)}`);
+      }
       setStep("done");
     } catch (e) {
       setError(callableMessage(e));
@@ -100,6 +110,7 @@ export function PaymentSheet({ pending, onDone }: { pending: PendingBooking | nu
           <div className="mt-4">
             <CostBreakdown rate={pending.rate} kwh={pending.kwh} />
           </div>
+          {!live && (
           <div className="mt-5 grid grid-cols-2 gap-2">
             {(
               [
@@ -119,13 +130,15 @@ export function PaymentSheet({ pending, onDone }: { pending: PendingBooking | nu
               </button>
             ))}
           </div>
+          )}
           {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <Button variant="brand" size="lg" className="mt-4 w-full" onClick={pay} disabled={!!busy}>
             {busy === "pay" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-            Authorise <span className="num">{formatINR(estimate)}</span>
+            {live ? "Pay with Razorpay" : "Authorise"} <span className="num">{formatINR(estimate)}</span>
           </Button>
           <p className="mt-2 text-center text-xs text-muted">
-            Test mode — no real money moves. You’re only charged for the kWh you actually use at check-out.
+            {live ? "Razorpay test mode — use Razorpay’s test cards/UPI. " : "Test mode — no real money moves. "}
+            You’re only charged for the kWh you actually use at check-out.
           </p>
           <button onClick={release} disabled={!!busy} className="mx-auto mt-3 block text-sm text-muted hover:text-ink">
             {busy === "cancel" ? "Releasing…" : "Cancel and release slots"}

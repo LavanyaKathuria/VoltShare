@@ -7,6 +7,7 @@ import { FieldValue, Timestamp, type DocumentReference } from "firebase-admin/fi
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { adminAuth, db } from "../admin";
+import { verifyRazorpaySignature } from "../payments/signature";
 
 export const HOLD_MINUTES = 10; // unpaid holds are released after this
 const IST_OFFSET_MIN = 330;
@@ -97,17 +98,30 @@ async function archiveGroup(group: { ref: DocumentReference; data: BookingDoc }[
   await batch.commit();
 }
 
+type RazorpayProof = { orderId: string; paymentId: string; signature: string };
+
 /**
- * Mock payment confirmation (Razorpay test mode would verify the payment signature here first).
- * pending -> confirmed, issues the 4-digit check-in PIN and grants address access.
+ * Payment confirmation. pending -> confirmed, issues the 4-digit check-in PIN and grants address access.
+ *  - Razorpay configured (functions/.env): requires a valid Razorpay signature for the order we created.
+ *  - Not configured: accepts the app's mocked test-mode payment.
  */
-export const confirmBooking = onCall<{ groupId: string; paymentRef?: string }>(async (req) => {
+export const confirmBooking = onCall<{ groupId: string; paymentRef?: string; razorpay?: RazorpayProof }>(async (req) => {
   if (!req.auth) throw new HttpsError("unauthenticated", "Sign in first.");
   const group = await loadGroup(String(req.data?.groupId ?? ""));
   const b = group[0].data;
   if (b.renterId !== req.auth.uid) throw new HttpsError("permission-denied", "Not your booking.");
   if (group.some((g) => g.data.status === "confirmed")) return { status: "confirmed" };
   if (group.some((g) => g.data.status !== "pending")) throw new HttpsError("failed-precondition", "Booking can't be confirmed.");
+
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  let paymentRef = req.data.paymentRef ?? `mock_${Date.now().toString(36)}`;
+  if (process.env.RAZORPAY_KEY_ID && secret) {
+    const proof = req.data.razorpay;
+    const storedOrder = (group[0].data as unknown as { razorpayOrderId?: string }).razorpayOrderId;
+    if (!proof || !storedOrder || proof.orderId !== storedOrder || !verifyRazorpaySignature(proof.orderId, proof.paymentId, proof.signature, secret))
+      throw new HttpsError("permission-denied", "Payment could not be verified.");
+    paymentRef = proof.paymentId;
+  }
 
   const pin = pin4();
   const batch = db.batch();
@@ -116,7 +130,7 @@ export const confirmBooking = onCall<{ groupId: string; paymentRef?: string }>(a
       status: "confirmed",
       pin,
       confirmedAt: FieldValue.serverTimestamp(),
-      paymentRef: req.data.paymentRef ?? `mock_${Date.now().toString(36)}`,
+      paymentRef,
     });
     batch.update(db.doc(`slots/${g.ref.id}`), { status: "booked" });
   }

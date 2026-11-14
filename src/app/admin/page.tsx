@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Badge";
 import { Toggle } from "@/components/ui/Toggle";
 import { AdminChargers } from "@/components/host/AdminChargers";
+import { PlatformStats } from "@/components/host/PlatformStats";
 import { db, functions } from "@/lib/firebase/client";
 import type { UserProfile } from "@/types";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
@@ -130,6 +131,7 @@ function AdminGate() {
         <h1 className="text-3xl">Admin</h1>
         <p className="text-muted">Verify hosts, manage roles and moderate listings.</p>
       </div>
+      <PlatformStats />
       <UsersTable />
       <AdminChargers />
     </div>

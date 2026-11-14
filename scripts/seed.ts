@@ -1,27 +1,13 @@
 /**
- * Seeds demo data. By default targets the local Emulator Suite (safe).
- *   npm run seed                 -> emulators (start them first: npm run emulators)
- *   SEED_PROD=1 npm run seed     -> real project, using GOOGLE_APPLICATION_CREDENTIALS
- *
- * Creates demo accounts (with roles) and ~15 chargers across Bengaluru. Safe to re-run:
- * documents use fixed IDs, so a re-seed resets the demo to a known state.
+ * Seeds FICTIONAL demo data (accounts, 15 Bengaluru chargers, a week of sessions).
+ *   npm run seed                                   -> local emulators (wipes & resets the demo)
+ *   npm run seed -- --prod --project <id> --key <service-account.json> --yes
+ *                                                  -> real project (never deletes anything;
+ *                                                     booking history is added only once)
  */
-import { initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { fuzzLocation, geohash } from "../src/lib/geo";
-
-const PROD = process.env.SEED_PROD === "1";
-const projectId = process.env.FIREBASE_PROJECT_ID || "demo-voltshare";
-if (!PROD) {
-  process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
-  process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
-  process.env.FIREBASE_STORAGE_EMULATOR_HOST ??= "127.0.0.1:9199";
-}
-
-initializeApp({ projectId });
-const auth = getAuth();
-const db = getFirestore();
+import { auth, db, PROD, projectId } from "./_admin";
 
 export const DEMO_PASSWORD = "demo1234";
 const DEMO_USERS = [
@@ -174,6 +160,12 @@ const slotsFrom = (start: string, n: number) =>
   });
 
 async function seedBookings(uids: Record<string, string>) {
+  // On a real project, add the fictional history once only — never overwrite real earnings.
+  const marker = db.doc("meta/demoSeed");
+  if (PROD && (await marker.get()).exists) {
+    console.log("  • demo booking history already present — skipped");
+    return;
+  }
   const charger = Object.fromEntries(CHARGERS.map((c) => [c.id, c]));
   const renters = [
     { email: "renter@demo.com", name: "Riya Sharma" },
@@ -263,12 +255,14 @@ async function seedBookings(uids: Record<string, string>) {
   }
 
   for (const [owner, h] of Object.entries(hostStats)) batch.set(db.doc(`hostStats/${owner}`), { ownerId: owner, ...h, demo: true });
-  batch.set(db.doc("platformStats/global"), { ...platform, demo: true });
+  if (!PROD) batch.set(db.doc("platformStats/global"), { ...platform, demo: true });
+  else batch.set(db.doc("platformStats/global"), { platformRevenue: FieldValue.increment(platform.platformRevenue), totalKwh: FieldValue.increment(platform.totalKwh), sessions: FieldValue.increment(platform.sessions) } as never);
   for (let i = 0; i < ops.length; i += 400) {
     const b = db.batch();
-    ops.slice(i, i + 400).forEach(([path, data]) => b.set(db.doc(path), data));
+    ops.slice(i, i + 400).forEach(([path, data]) => b.set(db.doc(path), data, { merge: true }));
     await b.commit();
   }
+  if (PROD) await marker.set({ at: FieldValue.serverTimestamp(), sessions: platform.sessions });
   console.log(`  ✓ ${platform.sessions} past sessions (₹${platform.platformRevenue} platform fees), 2 upcoming bookings`);
 }
 
