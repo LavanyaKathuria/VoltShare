@@ -4,7 +4,8 @@ import { MAX_SESSION_KWH } from "@/components/charger/Cost";
 import { Pill } from "@/components/ui/Badge";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import type { BookingGroup } from "@/hooks/useBookings";
-import { formatINR, formatRate, PLATFORM_FEE } from "@/lib/chargers";
+import { formatINR, formatRate } from "@/lib/chargers";
+import { bill } from "@/lib/billing";
 import { slotEndLabel } from "@/lib/time";
 import { Gauge, PlugZap, Timer, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -38,7 +39,7 @@ export function ActiveSession({ g, onCheckout }: { g: BookingGroup; onCheckout: 
   const startedAt = b.checkedInAt?.toMillis() ?? g.start.getTime();
   const kwh = simulatedKwh(b.powerKw, startedAt, now);
   const target = Math.min(MAX_SESSION_KWH, (b.powerKw * 0.9 * (g.end.getTime() - startedAt)) / 3_600_000);
-  const cost = kwh * b.ratePerKwh * (1 + PLATFORM_FEE);
+  const cost = bill(b.ratePerKwh, kwh).total;
   const left = g.end.getTime() - now;
 
   return (

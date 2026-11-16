@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/Toaster";
 import { useMyBookings, type BookingGroup } from "@/hooks/useBookings";
 import { callableMessage, cancelBooking } from "@/lib/bookings";
 import { formatINR, formatRate } from "@/lib/chargers";
+import { bill } from "@/lib/billing";
 import { formatDateKey, slotEndLabel, slotLabel } from "@/lib/time";
 import { CalendarDays, Hash, KeyRound, Loader2, MapPin, Zap } from "lucide-react";
 import Link from "next/link";
@@ -58,7 +59,7 @@ function BookingCard({ g, onPay }: { g: BookingGroup; onPay: (p: PendingBooking)
             {b.amount !== undefined ? (
               <span className="num font-medium text-ink">Paid {formatINR(b.amount)}</span>
             ) : (
-              <span>est. <span className="num">{formatINR(b.ratePerKwh * kwh * 1.15)}</span></span>
+              <span>est. <span className="num">{formatINR(bill(b.ratePerKwh, kwh).total)}</span></span>
             )}
           </p>
         </div>

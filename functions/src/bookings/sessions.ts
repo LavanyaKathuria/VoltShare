@@ -10,10 +10,10 @@ import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { db } from "../admin";
+import { bill } from "../billing";
 import { loadGroup, revokeAccessIfUnused } from "./index";
 
 export const GEOFENCE_M = 100;
-export const PLATFORM_FEE = 0.15;
 const EARLY_CHECKIN_MIN = 10;
 const MAX_SESSION_KWH = 100;
 
@@ -111,9 +111,7 @@ export const billOnComplete = onDocumentUpdated("bookings/{bookingId}", async (e
     const d = cur.data()!;
     if (d.billedAt) return;
     const kwh = Number(d.kwh ?? 0);
-    const energyCost = round2(kwh * d.ratePerKwh);
-    const platformFee = round2(energyCost * PLATFORM_FEE);
-    const amount = round2(energyCost + platformFee);
+    const { energy: energyCost, fee: platformFee, total: amount } = bill(d.ratePerKwh, kwh);
     tx.update(ref, { energyCost, platformFee, amount, hostEarning: energyCost, billedAt: FieldValue.serverTimestamp() });
 
     const day = dayKeyIST((d.checkedOutAt as Timestamp | undefined)?.toDate() ?? new Date());

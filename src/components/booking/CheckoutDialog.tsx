@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { BookingGroup } from "@/hooks/useBookings";
 import { checkOut, callableMessage } from "@/lib/bookings";
-import { formatINR, PLATFORM_FEE } from "@/lib/chargers";
+import { formatINR } from "@/lib/chargers";
+import { bill } from "@/lib/billing";
 import { storage } from "@/lib/firebase/client";
 import { compressImage } from "@/lib/images";
 import { ref, uploadBytes } from "firebase/storage";
@@ -31,7 +32,7 @@ export function CheckoutDialog({ g, open, onClose }: { g: BookingGroup; open: bo
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = Number(kwh);
-  const estimate = value > 0 ? value * b.ratePerKwh * (1 + PLATFORM_FEE) : 0;
+  const estimate = value > 0 ? bill(b.ratePerKwh, value).total : 0;
 
   async function submit() {
     if (!user) return;

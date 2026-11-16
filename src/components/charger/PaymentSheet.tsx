@@ -4,6 +4,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { cancelBooking, confirmBooking, callableMessage } from "@/lib/bookings";
 import { formatINR } from "@/lib/chargers";
+import { bill } from "@/lib/billing";
 import { formatDateKey, slotEndLabel, slotLabel } from "@/lib/time";
 import { CheckCircle2, CreditCard, Loader2, ShieldCheck, Smartphone, Timer } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -59,7 +60,7 @@ export function PaymentSheet({ pending, onDone }: { pending: PendingBooking | nu
   }, [pending]);
 
   if (!pending) return <Modal open={false} label="Checkout">{null}</Modal>;
-  const estimate = pending.rate * pending.kwh * 1.15;
+  const estimate = bill(pending.rate, pending.kwh).total;
   const range = `${slotLabel(pending.slots[0])} – ${slotEndLabel(pending.slots[pending.slots.length - 1])}`;
 
   async function pay() {

@@ -10,7 +10,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ConnectorBadge, DemoBadge, Pill, StatusBadge, VerifiedBadge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { useCharger, useChargerPrivate, useRenterAccess } from "@/hooks/useChargers";
-import { ACCESS_LABEL, CONNECTOR_SHORT, formatINR, formatRate, PLATFORM_FEE, to12h } from "@/lib/chargers";
+import { ACCESS_LABEL, CONNECTOR_SHORT, formatINR, formatRate, to12h } from "@/lib/chargers";
+import { bill } from "@/lib/billing";
 import { PRIVACY_RADIUS_M } from "@/lib/geo";
 import { ArrowLeft, BadgeCheck, CheckCircle2, Clock, Gauge, IndianRupee, KeyRound, Lock, MapPin, Plug } from "lucide-react";
 import Link from "next/link";
@@ -182,7 +183,7 @@ export default function ChargerPage({ params }: { params: Promise<{ id: string }
           <div>
             <p className="num font-semibold">{formatRate(c.ratePerKwh)}</p>
             <p className="num text-xs text-muted">
-              ~{formatINR(c.ratePerKwh * mobileKwh * (1 + PLATFORM_FEE), 0)} for 1h
+              ~{formatINR(bill(c.ratePerKwh, mobileKwh).total, 0)} for 1h
             </p>
           </div>
           {isOwner ? (

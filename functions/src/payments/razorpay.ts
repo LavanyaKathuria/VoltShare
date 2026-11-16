@@ -5,17 +5,14 @@
  */
 import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { bill, estimateKwh } from "../billing";
 import { loadGroup } from "../bookings";
 
 export const razorpayEnabled = () => !!process.env.RAZORPAY_KEY_ID && !!process.env.RAZORPAY_KEY_SECRET;
 
-const MAX_SESSION_KWH = 40;
-const PLATFORM_FEE = 0.15;
-
-/** Server-side estimate we pre-authorise: rated power × 90 % × booked time, capped, + 15 % fee. */
+/** Server-side estimate we pre-authorise — the same numbers the checkout screen shows. */
 export function estimateAmountPaise(powerKw: number, ratePerKwh: number, slots: number) {
-  const kwh = Math.min(MAX_SESSION_KWH, powerKw * 0.9 * (slots / 2));
-  return Math.max(100, Math.round(kwh * ratePerKwh * (1 + PLATFORM_FEE) * 100));
+  return Math.max(100, bill(ratePerKwh, estimateKwh(powerKw, slots / 2)).totalPaise);
 }
 
 export const createPaymentOrder = onCall<{ groupId: string }>(async (req) => {
