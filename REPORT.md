@@ -73,7 +73,7 @@ flowchart LR
 | **Firebase Emulator Suite** | Local development and the automated rules test suite. |
 | **Vercel** | Hosting the Next.js app on a global edge CDN; a serverless route handler proxies Open Charge Map with a server-side key and a one-day cache. |
 | **GitHub Actions** | CI: type-check, unit tests, rules tests on emulators, production build. |
-| *External* | CARTO Voyager map tiles (Leaflet), Razorpay test mode, Open Charge Map (optional). |
+| *External* | OpenStreetMap map tiles via Leaflet (Stadia Maps optional), Razorpay test mode, Open Charge Map (optional). |
 
 ## 5. Security considerations
 

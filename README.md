@@ -13,7 +13,7 @@ Built for a university hackathon (Energy Systems / Transportation) to demonstrat
 | | |
 |---|---|
 | **Roles** | `renter` / `host` / `admin` as Firebase Auth **custom claims** set only by Cloud Functions; one account can rent and host. Instant `Find a Charger \| Host Mode` switcher. |
-| **Map explorer** | Split screen (cards + Leaflet map with CARTO Voyager tiles), colour-coded price-pill pins (available / charging / busy), hover-linked cards ↔ pins, filters, geohash queries, mobile full-screen map with a draggable bottom sheet. |
+| **Map explorer** | Split screen (cards + Leaflet map with OpenStreetMap tiles (or Stadia Maps)), colour-coded price-pill pins (available / charging / busy), hover-linked cards ↔ pins, filters, geohash queries, mobile full-screen map with a draggable bottom sheet. |
 | **Listings** | Photos (Storage), connector (Type 2 / CCS2 / 15A), kW, ₹/kWh, access type, rules, hours, map pin picker. Public doc gets a location fuzzed 120–250 m; exact address lives in a private sub-document. |
 | **Double-booking-proof slots** | One Firestore doc per slot, ID `{chargerId}_{YYYY-MM-DD}_{HHmm}`, multi-slot bookings written atomically in one transaction. Live slot pills across all tabs, *“Slot just taken!”* toasts, and a **Simulate concurrent booking** demo. |
 | **Privacy** | Exact address / gate code readable only by the host, admins, or a renter holding a `renterAccess` grant that a Cloud Function creates on confirmation and removes after the slot. |
@@ -45,7 +45,7 @@ flowchart LR
   CF -- "orders API" --> RZP["Razorpay (test)"]
   UI -- "Checkout.js" --> RZP
   UI -- "/api/public-stations" --> ROUTE["Vercel route handler"] --> OCM["Open Charge Map"]
-  UI -- "map tiles" --> CARTO["CARTO Voyager"]
+  UI -- "map tiles" --> TILES["OpenStreetMap / Stadia tiles"]
 ```
 
 **Cloud Functions** (`functions/src`, region `asia-south1`)

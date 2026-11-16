@@ -1,16 +1,15 @@
 "use client";
 
 import { STATUS_COLOR } from "@/lib/chargers";
+import { tileConfig } from "@/lib/mapTiles";
 import type { LatLng } from "@/lib/geo";
 import L from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
 import { Circle, CircleMarker, MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import type { MapMarker, MapViewProps } from "./types";
 
-// CARTO "Voyager" — clean, Google-Maps-like light basemap, no API key.
-const TILES = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// Basemap is configurable (see src/lib/mapTiles.ts). Pins and circles are drawn by us on top.
+const TILES = tileConfig();
 
 function priceIcon(m: MapMarker, active: boolean) {
   const bg = STATUS_COLOR[m.status];
@@ -84,6 +83,7 @@ export default function LeafletMap({
       center={[center.lat, center.lng]}
       zoom={zoom}
       zoomControl={false}
+      maxZoom={TILES.maxZoom}
       scrollWheelZoom={interactive}
       dragging={interactive}
       doubleClickZoom={interactive}
@@ -92,7 +92,7 @@ export default function LeafletMap({
       className={className}
       style={{ height: "100%", width: "100%", background: "#EEF2F6" }}
     >
-      <TileLayer url={TILES} attribution={ATTRIBUTION} subdomains="abcd" maxZoom={20} />
+      <TileLayer url={TILES.url} attribution={TILES.attribution} maxZoom={TILES.maxZoom} className={TILES.soften ? "vs-tiles-soft" : undefined} />
       <Recenter center={center} zoom={zoom} />
       <Events onMoveEnd={onMoveEnd} onPinChange={onPinChange} />
 
