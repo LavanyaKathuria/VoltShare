@@ -175,16 +175,6 @@ npm run test:unit    # Open Charge Map mapping, Razorpay signature verification
 
 The rules suite includes the three required cases — *a renter can't read private details without a booking*, *a renter can't write another user's booking*, *nobody can create a booking for a taken slot* — plus role escalation, badge forging, price tampering, out-of-hours / past bookings, slot-lock griefing, grant forging, and earnings privacy.
 
-## Demo script (≈5 minutes)
-
-1. **Landing** → *Find a charger*. Show the split-screen map, hover cards ↔ pins, filter **CCS2**, drag the map → *Search this area*. On a phone: bottom sheet + List/Map toggle.
-2. Open **Corner café fast charger** → approximate 300 m circle and the lock notice.
-3. Sign in as **Renter**. Pick tomorrow, select 3 slots → *Reserve* → *Authorise* → *View my booking*: PIN, exact address and gate notes now unlocked.
-4. **Concurrency**: open the same charger in two windows (Renter + Host account), select the same slot in both, book in one → the other gets *“Slot just taken!”* and the pill locks. Then press **Simulate concurrent booking** — exactly one of *You* / *Rival Driver* wins.
-5. **Live session**: on **Lakeside hotel porch charger** (open 24 h) book the current slot, *Check in* → *Demo: pretend I'm at the charger* → PIN → watch the dark telemetry card; the map pin turns amber for everyone. *Unplug & check out* → server-computed receipt.
-6. Switch to **Host Mode** (as `host@demo.com`): live earnings counter, timeline, charts; flip a charger **Offline** and watch it vanish from the map in the other window.
-7. **Admin**: platform totals, verify a host, mark a meter verified.
-
 ## Map provider
 
 `src/components/map/MapView.tsx` lazy-loads `LeafletMap.tsx` behind a provider-neutral contract (`types.ts`). To switch to the Google Maps JS API, implement the same props in `GoogleMap.tsx` and change the one dynamic import.
