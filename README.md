@@ -4,7 +4,7 @@
 
 Built for a university hackathon (Energy Systems / Transportation) to demonstrate **scalability, real-time sync, secure role-based access and high availability** on Firebase + Vercel. The full write-up is in [`REPORT.md`](REPORT.md).
 
-> **Demo data is fictional.** The 15 seeded Bengaluru chargers, their hosts, addresses, photos, ratings and booking history are invented and shown with a **“Demo listing”** tag. Neighbourhood coordinates are real; house-level details are not. Anything listed through *Host Mode → Add charger* is a real, working listing.
+> **Demo data is fictional.** The 21 seeded chargers (15 in Bengaluru, 6 in Delhi), their hosts, addresses, photos, ratings and booking history are invented and shown with a **“Demo listing”** tag. Neighbourhood coordinates are real; house-level details are not. Anything listed through *Host Mode → Add charger* is a real, working listing.
 
 ---
 

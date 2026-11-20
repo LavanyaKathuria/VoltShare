@@ -61,7 +61,7 @@ type Seed = {
   access: "PUBLIC_DRIVEWAY" | "GATED_SOCIETY" | "BUSINESS"; photos: string[];
   status?: "available" | "charging" | "busy"; online?: boolean; meter?: boolean;
   rating?: number; reviews?: number; open?: string; close?: string;
-  address: string; notes: string; desc: string; rules?: string[];
+  address: string; notes: string; desc: string; rules?: string[]; city?: string;
 };
 
 const P = (...n: string[]) => n.map((x) => `/demo/${x}.svg`);
@@ -83,6 +83,13 @@ const CHARGERS: Seed[] = [
   { id: "blr-domlur-01", host: H2, title: "Domlur villa — 11 kW", area: "Domlur", lat: 12.9610, lng: 77.6387, connector: "TYPE2", kw: 11, rate: 14, access: "PUBLIC_DRIVEWAY", photos: P("driveway-2", "closeup-1"), online: false, rating: 4.6, reviews: 14, address: "Demo address — villa driveway, Domlur Layout 2nd Stage", notes: "Demo notes: the watchman will open the gate — mention VoltShare.", desc: "Spacious villa driveway close to the Domlur flyover." },
   { id: "blr-yelahanka-01", host: H3, title: "Airport road society charger", area: "Yelahanka", lat: 13.1007, lng: 77.5963, connector: "TYPE2", kw: 7.4, rate: 11.5, access: "GATED_SOCIETY", photos: P("basement-2"), rating: 4.2, reviews: 6, address: "Demo address — society basement, Yelahanka New Town", notes: "Demo notes: gate code 1150. Basement bay 4.", desc: "Convenient stop on the way to or from the airport." },
   { id: "blr-rajajinagar-01", host: H4, title: "Rajajinagar business park bay", area: "Rajajinagar", lat: 12.9910, lng: 77.5525, connector: "CCS2", kw: 30, rate: 16.5, access: "BUSINESS", photos: P("techpark-1"), meter: true, rating: 4.5, reviews: 22, open: "07:00", close: "21:00", address: "Demo address — business park visitor bay, Dr Rajkumar Road, Rajajinagar", notes: "Demo notes: tell the guard at Gate 1 you have a VoltShare booking; bay EV-2.", desc: "30 kW DC in a secure business park, close to the metro." },
+  // ---- Delhi (fictional demo listings; neighbourhood coordinates are approximate) ----
+  { id: "del-cp-01", host: H4, city: "Delhi", title: "Hotel forecourt charger, Connaught Place", area: "Connaught Place", lat: 28.6315, lng: 77.2167, connector: "TYPE2", kw: 22, rate: 17, access: "BUSINESS", photos: P("hotel-1", "closeup-2"), meter: true, rating: 4.6, reviews: 41, open: "00:00", close: "23:30", address: "Demo address — hotel forecourt off the Outer Circle, Connaught Place, Delhi", notes: "Demo notes: tell the doorman you have a VoltShare booking; EV bay is left of the entrance.", desc: "22 kW AC charger in a hotel forecourt in central Delhi, open around the clock." },
+  { id: "del-hauzkhas-01", host: H2, city: "Delhi", title: "Café courtyard fast charger, Hauz Khas", area: "Hauz Khas", lat: 28.5494, lng: 77.2001, connector: "CCS2", kw: 30, rate: 18, access: "BUSINESS", photos: P("cafe-1", "closeup-1"), status: "charging", rating: 4.8, reviews: 57, open: "09:00", close: "23:00", address: "Demo address — café courtyard near Hauz Khas Village, Delhi", notes: "Demo notes: enter through the side lane; ask at the counter for the cable.", desc: "30 kW DC fast charging in a café courtyard — top up while you grab a coffee." },
+  { id: "del-lajpat-01", host: H1, city: "Delhi", title: "Home driveway near Central Market, Lajpat Nagar", area: "Lajpat Nagar", lat: 28.5677, lng: 77.2433, connector: "TYPE2", kw: 7.4, rate: 14, access: "PUBLIC_DRIVEWAY", photos: P("driveway-2", "closeup-1"), rating: 4.7, reviews: 23, address: "Demo address — home driveway near Central Market, Lajpat Nagar, Delhi", notes: "Demo notes: white gate; the charger is on the garage wall.", desc: "Covered home driveway, a short walk from the market. Easy evening top-ups." },
+  { id: "del-dwarka-01", host: H3, city: "Delhi", title: "Society visitor bay, Dwarka Sector 10", area: "Dwarka", lat: 28.5815, lng: 77.0570, connector: "TYPE2", kw: 11, rate: 12.5, access: "GATED_SOCIETY", photos: P("basement-1"), rating: 4.4, reviews: 11, address: "Demo address — gated society, Dwarka Sector 10, Delhi", notes: "Demo notes: gate code 1010. Visitor parking level -1, bay V-6.", desc: "11 kW charger in a gated society's visitor bay, with 24×7 security." },
+  { id: "del-saket-01", host: H4, city: "Delhi", title: "Office visitor parking, Saket", area: "Saket", lat: 28.5245, lng: 77.2066, connector: "CCS2", kw: 50, rate: 17.5, access: "BUSINESS", photos: P("techpark-1", "closeup-2"), meter: true, rating: 4.5, reviews: 34, open: "07:00", close: "22:00", address: "Demo address — office complex visitor parking, Saket, Delhi", notes: "Demo notes: take a visitor token at Gate 2; follow green EV signs to bay EV-1.", desc: "50 kW DC fast charger in an office visitor lot — ideal for cab drivers between trips." },
+  { id: "del-rohini-01", host: H2, city: "Delhi", title: "Budget 15A socket, Rohini", area: "Rohini", lat: 28.7041, lng: 77.1025, connector: "SOCKET15A", kw: 3, rate: 10, access: "PUBLIC_DRIVEWAY", photos: P("driveway-3"), rating: 0, reviews: 0, address: "Demo address — home driveway, Rohini, Delhi", notes: "Demo notes: bring your own portable cable; the socket is beside the meter box.", desc: "Low-cost 15A socket for e-scooters and cars with a portable charger. New listing!" },
 ];
 
 const DEFAULT_RULES = ["Park only in the marked bay", "Unplug and leave when your slot ends", "No idling after charging is complete"];
@@ -120,7 +127,7 @@ async function seedChargers(uids: Record<string, string>) {
       approxLng: approx.lng,
       geohash: geohash(approx),
       area: c.area,
-      city: "Bengaluru",
+      city: c.city ?? "Bengaluru",
       online: c.online ?? true,
       liveStatus: c.status ?? "available",
       meterVerified: c.meter ?? false,

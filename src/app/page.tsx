@@ -44,7 +44,7 @@ export default function Landing() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-16 px-4 pb-24 pt-12 sm:px-6 md:pt-20 lg:grid-cols-2">
           <FadeIn>
             <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-medium text-muted shadow-soft">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse-dot" /> Prototype · Bengaluru demo with 15 sample chargers
+              <span className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse-dot" /> Prototype · demo with 21 sample chargers in Bengaluru &amp; Delhi
             </span>
             <h1 className="mt-5 text-4xl leading-[1.08] sm:text-5xl lg:text-6xl">
               Charge at a neighbour’s driveway, <span className="text-brand-gradient">not a queue.</span>
